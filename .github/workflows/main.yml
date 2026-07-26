@@ -1,0 +1,145 @@
+name: DeNoTa CI/CD
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+  workflow_dispatch: # permet de lancer manuellement depuis GitHub
+
+jobs:
+  # ════════════════════════════════════════════════
+  # JOB 1 — Build APK Android (Debug + Release)
+  # ════════════════════════════════════════════════
+  build-android:
+    name: 🤖 Build Android APK
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1. Checkout du code
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      # 2. Java 17 (requis pour Gradle)
+      - name: ☕ Setup Java 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      # 3. Flutter SDK
+      - name: 🐦 Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.24.0'
+          channel: 'stable'
+          cache: true
+
+      # 4. Créer le fichier .env depuis les secrets GitHub
+      - name: 🔐 Créer le fichier .env
+        run: |
+          cat > .env << EOF
+          SUPABASE_URL=${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY=${{ secrets.SUPABASE_ANON_KEY }}
+          EOF
+
+      # 5. Créer les dossiers assets manquants
+      - name: 📁 Créer les dossiers assets
+        run: |
+          mkdir -p assets/images
+          mkdir -p assets/icons
+          mkdir -p assets/fonts
+
+      # 6. Télécharger les fonts Poppins
+      - name: 🔤 Télécharger fonts Poppins
+        run: |
+          cd assets/fonts
+          curl -L "https://github.com/google/fonts/raw/main/ofl/poppins/Poppins-Regular.ttf" -o Poppins-Regular.ttf
+          curl -L "https://github.com/google/fonts/raw/main/ofl/poppins/Poppins-Medium.ttf" -o Poppins-Medium.ttf
+          curl -L "https://github.com/google/fonts/raw/main/ofl/poppins/Poppins-SemiBold.ttf" -o Poppins-SemiBold.ttf
+          curl -L "https://github.com/google/fonts/raw/main/ofl/poppins/Poppins-Bold.ttf" -o Poppins-Bold.ttf
+          curl -L "https://github.com/google/fonts/raw/main/ofl/poppins/Poppins-Light.ttf" -o Poppins-Light.ttf
+          echo "✅ Fonts téléchargées"
+
+      # 7. Installer google-services.json depuis secret
+      - name: 🔥 Configurer Firebase (google-services.json)
+        run: |
+          echo '${{ secrets.GOOGLE_SERVICES_JSON }}' > android/app/google-services.json
+
+      # 8. flutter pub get
+      - name: 📦 Installer les dépendances
+        run: flutter pub get
+
+      # 9. Analyse du code
+      - name: 🔍 Analyser le code
+        run: flutter analyze --no-fatal-infos
+        continue-on-error: true
+
+      # 10. Build APK Debug (rapide, pour tester)
+      - name: 🏗️ Build APK Debug
+        run: flutter build apk --debug --no-pub
+        
+      # 11. Upload APK Debug
+      - name: 📤 Upload APK Debug
+        uses: actions/upload-artifact@v4
+        with:
+          name: denota-debug-apk
+          path: build/app/outputs/flutter-apk/app-debug.apk
+          retention-days: 7
+
+      # 12. Build APK Release (seulement sur main)
+      - name: 🚀 Build APK Release
+        if: github.ref == 'refs/heads/main'
+        run: |
+          flutter build apk --release --no-pub \
+            --dart-define=SUPABASE_URL=${{ secrets.SUPABASE_URL }} \
+            --dart-define=SUPABASE_ANON_KEY=${{ secrets.SUPABASE_ANON_KEY }}
+
+      # 13. Upload APK Release
+      - name: 📤 Upload APK Release
+        if: github.ref == 'refs/heads/main'
+        uses: actions/upload-artifact@v4
+        with:
+          name: denota-release-apk
+          path: build/app/outputs/flutter-apk/app-release.apk
+          retention-days: 30
+
+  # ════════════════════════════════════════════════
+  # JOB 2 — Build Web (site vitrine)
+  # ════════════════════════════════════════════════
+  deploy-web-vitrine:
+    name: 🌐 Deploy Site Vitrine
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 📤 Upload site vitrine
+        uses: actions/upload-artifact@v4
+        with:
+          name: denota-web-vitrine
+          path: web_vitrine/index.html
+          retention-days: 30
+
+  # ════════════════════════════════════════════════
+  # JOB 3 — Notification résumé
+  # ════════════════════════════════════════════════
+  notify:
+    name: 📊 Résumé du build
+    runs-on: ubuntu-latest
+    needs: [build-android]
+    if: always()
+
+    steps:
+      - name: ✅ Résumé
+        run: |
+          echo "================================"
+          echo "  DeNoTa CI/CD — Résumé"
+          echo "================================"
+          echo "Branch     : ${{ github.ref_name }}"
+          echo "Commit     : ${{ github.sha }}"
+          echo "Déclenché  : ${{ github.actor }}"
+          echo "Android    : ${{ needs.build-android.result }}"
+          echo "================================"
