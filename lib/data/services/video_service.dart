@@ -1,0 +1,256 @@
+// lib/data/services/video_service.dart
+import 'dart:io';
+import 'package:flutter/foundation.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:uuid/uuid.dart';
+import 'package:video_compress/video_compress.dart';
+
+class VideoPickResult {
+  final File file;
+  final File? thumbnail;
+  final int? durationMs;
+  final int fileSizeBytes;
+
+  const VideoPickResult({
+    required this.file,
+    this.thumbnail,
+    this.durationMs,
+    required this.fileSizeBytes,
+  });
+
+  String get durationLabel {
+    if (durationMs == null) return '';
+    final sec = durationMs! ~/ 1000;
+    final m = sec ~/ 60;
+    final s = sec % 60;
+    return '${m}:${s.toString().padLeft(2, '0')}';
+  }
+
+  double get fileSizeMb => fileSizeBytes / (1024 * 1024);
+}
+
+class UploadProgress {
+  final double percent;   // 0.0 → 1.0
+  final String label;
+  final bool done;
+  final String? error;
+
+  const UploadProgress({
+    required this.percent,
+    required this.label,
+    this.done = false,
+    this.error,
+  });
+}
+
+class VideoService {
+  final _picker = ImagePicker();
+  final _supabase = Supabase.instance.client;
+  final _uuid = const Uuid();
+
+  // ── Sélection depuis galerie ou caméra ─────────────────
+  Future<VideoPickResult?> pickVideo({
+    required ImageSource source,
+    Duration maxDuration = const Duration(minutes: 5),
+  }) async {
+    final xfile = await _picker.pickVideo(
+      source: source,
+      maxDuration: maxDuration,
+    );
+    if (xfile == null) return null;
+
+    final file = File(xfile.path);
+    final stat = await file.stat();
+
+    // Générer thumbnail
+    final thumb = await _generateThumbnail(file);
+
+    // Durée
+    int? durationMs;
+    try {
+      final info = await VideoCompress.getMediaInfo(xfile.path);
+      durationMs = info.duration?.round();
+    } catch (_) {}
+
+    return VideoPickResult(
+      file: file,
+      thumbnail: thumb,
+      durationMs: durationMs,
+      fileSizeBytes: stat.size,
+    );
+  }
+
+  // ── Génération thumbnail ───────────────────────────────
+  Future<File?> _generateThumbnail(File videoFile) async {
+    try {
+      final thumb = await VideoCompress.getFileThumbnail(
+        videoFile.path,
+        quality: 75,
+        position: -1,
+      );
+      return thumb;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  // ── Compression ────────────────────────────────────────
+  Future<File> compressVideo(
+    File file, {
+    VideoQuality quality = VideoQuality.MediumQuality,
+    void Function(double)? onProgress,
+  }) async {
+    // Écouter la progression
+    VideoCompress.compressProgress$.subscribe((prog) {
+      onProgress?.call(prog / 100);
+    });
+
+    try {
+      final info = await VideoCompress.compressVideo(
+        file.path,
+        quality: quality,
+        deleteOrigin: false,
+        includeAudio: true,
+      );
+
+      VideoCompress.compressProgress$.unsubscribe((_) {});
+
+      if (info?.file == null) return file; // fallback
+      return info!.file!;
+    } catch (e) {
+      return file; // fallback si compression échoue
+    }
+  }
+
+  // ── Upload vers Supabase Storage ───────────────────────
+  Stream<UploadProgress> uploadVideo({
+    required File videoFile,
+    required File? thumbnailFile,
+    required String authorId,
+    required String contentType,
+    String? title,
+    String? body,
+    List<String> tags = const [],
+    int? sportId,
+    int? durationSec,
+  }) async* {
+    final videoId = _uuid.v4();
+    final videoExt = videoFile.path.split('.').last;
+    final videoPath = '$authorId/$videoId.$videoExt';
+
+    try {
+      // ── Étape 1 : Upload vidéo ─────────────────────────
+      yield const UploadProgress(percent: 0.05, label: 'Préparation de la vidéo...');
+
+      final videoBytes = await videoFile.readAsBytes();
+      final videoSizeMb = videoBytes.length / (1024 * 1024);
+
+      yield UploadProgress(
+        percent: 0.10,
+        label: 'Upload de la vidéo (${videoSizeMb.toStringAsFixed(1)} Mo)...',
+      );
+
+      await _supabase.storage.from('videos').uploadBinary(
+        videoPath,
+        videoBytes,
+        fileOptions: FileOptions(
+          contentType: 'video/$videoExt',
+          upsert: false,
+        ),
+      );
+
+      final videoUrl = _supabase.storage.from('videos').getPublicUrl(videoPath);
+
+      yield const UploadProgress(percent: 0.65, label: 'Vidéo uploadée ✓');
+
+      // ── Étape 2 : Upload thumbnail ─────────────────────
+      String? thumbUrl;
+      if (thumbnailFile != null) {
+        yield const UploadProgress(percent: 0.70, label: 'Upload de la miniature...');
+
+        final thumbPath = '$authorId/${videoId}_thumb.jpg';
+        final thumbBytes = await thumbnailFile.readAsBytes();
+
+        await _supabase.storage.from('posts').uploadBinary(
+          thumbPath,
+          thumbBytes,
+          fileOptions: const FileOptions(contentType: 'image/jpeg', upsert: false),
+        );
+
+        thumbUrl = _supabase.storage.from('posts').getPublicUrl(thumbPath);
+        yield const UploadProgress(percent: 0.80, label: 'Miniature uploadée ✓');
+      }
+
+      // ── Étape 3 : Enregistrement en base ──────────────
+      yield const UploadProgress(percent: 0.85, label: 'Enregistrement de la publication...');
+
+      await _supabase.from('posts').insert({
+        'author_id':     authorId,
+        'content_type':  contentType,
+        'status':        'pending_moderation',
+        'title':         title,
+        'body':          body,
+        'tags':          tags,
+        'sport_id':      sportId,
+        'media_urls':    [videoUrl],
+        'thumbnail_url': thumbUrl,
+        'duration_sec':  durationSec,
+        'published_at':  DateTime.now().toIso8601String(),
+      });
+
+      yield const UploadProgress(
+        percent: 1.0,
+        label: 'Publication envoyée en modération ✓',
+        done: true,
+      );
+    } catch (e) {
+      yield UploadProgress(
+        percent: 0,
+        label: 'Erreur : $e',
+        error: e.toString(),
+      );
+    }
+  }
+
+  // ── Upload article / statut (sans vidéo) ──────────────
+  Future<void> createTextPost({
+    required String authorId,
+    required String contentType, // 'article' | 'status'
+    required String body,
+    String? title,
+    List<String> tags = const [],
+    int? sportId,
+    List<File> imageFiles = const [],
+  }) async {
+    List<String> mediaUrls = [];
+
+    for (int i = 0; i < imageFiles.length; i++) {
+      final ext = imageFiles[i].path.split('.').last;
+      final path = '$authorId/${const Uuid().v4()}.$ext';
+      final bytes = await imageFiles[i].readAsBytes();
+      await _supabase.storage.from('posts').uploadBinary(
+        path, bytes,
+        fileOptions: FileOptions(contentType: 'image/$ext', upsert: false),
+      );
+      mediaUrls.add(_supabase.storage.from('posts').getPublicUrl(path));
+    }
+
+    await _supabase.from('posts').insert({
+      'author_id':    authorId,
+      'content_type': contentType,
+      'status':       'pending_moderation',
+      'title':        title,
+      'body':         body,
+      'tags':         tags,
+      'sport_id':     sportId,
+      'media_urls':   mediaUrls,
+      'published_at': DateTime.now().toIso8601String(),
+    });
+  }
+
+  void dispose() {
+    VideoCompress.cancelCompression();
+  }
+}
