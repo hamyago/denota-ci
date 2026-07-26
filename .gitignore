@@ -8,7 +8,7 @@
 build/
 *.iml
 
-# Environment
+# Environment — NE JAMAIS COMMITTER
 .env
 !.env.example
 
@@ -16,46 +16,38 @@ build/
 **/android/**/gradle-wrapper.jar
 **/android/.gradle
 **/android/captures/
-**/android/gradlew
-**/android/gradlew.bat
 **/android/local.properties
 **/android/**/GeneratedPluginRegistrant.java
 **/android/key.properties
 **/*.keystore
 **/*.jks
 
+# Firebase
+google-services.json
+GoogleService-Info.plist
+
 # iOS
 **/ios/**/*.mode1v3
-**/ios/**/*.mode2v3
-**/ios/**/*.moved-aside
 **/ios/**/*.pbxuser
-**/ios/**/*.perspectivev3
 **/ios/.generated/
-**/ios/Flutter/.last_build_id
 **/ios/Flutter/App.framework
 **/ios/Flutter/Flutter.framework
-**/ios/Flutter/Flutter.podspec
 **/ios/Flutter/Generated.xcconfig
 **/ios/Flutter/ephemeral/
-**/ios/Flutter/app.flx
-**/ios/Flutter/app.zip
-**/ios/Flutter/flutter_assets/
-**/ios/ServiceDefinitions.json
 **/ios/Runner/GeneratedPluginRegistrant.*
-**/ios/Podfile.lock
 
 # IDE
 .idea/
-*.suo
-*.ntvs*
-*.njsproj
-*.sln
-*.sw?
 .vscode/settings.json
+*.sw?
+
+# Fonts (téléchargées au build CI)
+assets/fonts/*.ttf
 
 # macOS
 **/macos/Flutter/GeneratedPluginRegistrant.swift
+**/macos/Flutter/ephemeral/
 
-# Google Services
-google-services.json
-GoogleService-Info.plist
+# Linux
+**/linux/flutter/generated_plugin_registrant.*
+**/linux/flutter/generated_plugins.cmake

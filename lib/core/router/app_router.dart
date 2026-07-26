@@ -1,4 +1,3 @@
-// lib/core/router/app_router.dart
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -31,9 +30,12 @@ class AppRouter {
     redirect: (context, state) {
       final isAuth = Supabase.instance.client.auth.currentSession != null;
       final onAuthPages = [Routes.splash, Routes.onboarding, Routes.login,
-        Routes.register, Routes.registerRole, Routes.otp].contains(state.matchedLocation);
+        Routes.register, Routes.registerRole, Routes.otp]
+          .contains(state.matchedLocation);
       if (!isAuth && !onAuthPages) return Routes.login;
-      if (isAuth && onAuthPages && state.matchedLocation != Routes.splash) return Routes.feed;
+      if (isAuth && onAuthPages && state.matchedLocation != Routes.splash) {
+        return Routes.feed;
+      }
       return null;
     },
     routes: [
@@ -42,11 +44,11 @@ class AppRouter {
       GoRoute(path: Routes.login,        builder: (_, __) => const LoginScreen()),
       GoRoute(path: Routes.register,     builder: (_, __) => const RegisterScreen()),
       GoRoute(path: Routes.registerRole, builder: (_, __) => const RegisterRoleScreen()),
-      GoRoute(path: Routes.otp,          builder: (ctx, s) => OtpScreen(phone: s.extra as String? ?? '')),
+      GoRoute(path: Routes.otp,          builder: (_, s)  => OtpScreen(phone: s.extra as String? ?? '')),
 
       ShellRoute(
         navigatorKey: _shellKey,
-        builder: (ctx, s, child) => HomeShell(child: child),
+        builder: (_, __, child) => HomeShell(child: child),
         routes: [
           GoRoute(path: Routes.feed,          builder: (_, __) => const FeedScreen()),
           GoRoute(path: Routes.discover,      builder: (_, __) => const DiscoverScreen()),
@@ -56,13 +58,12 @@ class AppRouter {
         ],
       ),
 
-      // Écrans full-page hors shell
-      GoRoute(path: Routes.profileView,   builder: (ctx, s) => ProfileScreen(userId: s.pathParameters['id'])),
+      GoRoute(path: Routes.profileView,   builder: (_, s)  => ProfileScreen(userId: s.pathParameters['id'])),
       GoRoute(path: Routes.editProfile,   builder: (_, __) => const EditProfileScreen()),
-      GoRoute(path: Routes.chat,          builder: (ctx, s) => ChatScreen(conversationId: s.pathParameters['id'] ?? '')),
+      GoRoute(path: Routes.chat,          builder: (_, s)  => ChatScreen(conversationId: s.pathParameters['id'] ?? '')),
       GoRoute(path: Routes.createPost,    builder: (_, __) => const CreatePostScreen()),
       GoRoute(path: Routes.recruiterDash, builder: (_, __) => const RecruiterDashboardScreen()),
-      GoRoute(path: Routes.payment,       builder: (ctx, s) => PaymentScreen(plan: s.extra as String? ?? 'athlete_premium')),
+      GoRoute(path: Routes.payment,       builder: (_, s)  => PaymentScreen(plan: s.extra as String? ?? 'athlete_premium')),
     ],
   );
 }
