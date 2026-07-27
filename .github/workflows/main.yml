@@ -1,4 +1,4 @@
-﻿name: DeNoTa CI/CD
+name: DeNoTa CI/CD
 
 on:
   push:
@@ -29,18 +29,18 @@ jobs:
           channel: 'stable'
           cache: true
 
-      - name: 🏗️ Créer projet Flutter complet
+      - name: 🏗️ Créer projet Flutter de base
         run: |
           flutter create --org ci.denota --project-name denota /tmp/denota_base
-          echo "✅ Projet Flutter de base créé"
+          echo "✅ Base Flutter créée"
 
       - name: 📋 Copier le code source
         run: |
-          cp -r lib/ /tmp/denota_base/lib/
-          cp pubspec.yaml /tmp/denota_base/pubspec.yaml
-          cp -r supabase/ /tmp/denota_base/supabase/ 2>/dev/null || true
-          cp -r web_vitrine/ /tmp/denota_base/web_vitrine/ 2>/dev/null || true
-          echo "✅ Code source copié"
+          cp -r lib/                /tmp/denota_base/lib/
+          cp pubspec.yaml           /tmp/denota_base/pubspec.yaml
+          cp -r supabase/           /tmp/denota_base/supabase/ 2>/dev/null || true
+          cp -r web_vitrine/        /tmp/denota_base/web_vitrine/ 2>/dev/null || true
+          echo "✅ Code copié"
 
       - name: 🔐 Créer .env
         working-directory: /tmp/denota_base
@@ -56,11 +56,10 @@ jobs:
         working-directory: /tmp/denota_base
         run: |
           BASE="https://github.com/google/fonts/raw/main/ofl/poppins"
-          curl -fL "$BASE/Poppins-Regular.ttf"  -o assets/fonts/Poppins-Regular.ttf
-          curl -fL "$BASE/Poppins-Medium.ttf"   -o assets/fonts/Poppins-Medium.ttf
-          curl -fL "$BASE/Poppins-SemiBold.ttf" -o assets/fonts/Poppins-SemiBold.ttf
-          curl -fL "$BASE/Poppins-Bold.ttf"     -o assets/fonts/Poppins-Bold.ttf
-          curl -fL "$BASE/Poppins-Light.ttf"    -o assets/fonts/Poppins-Light.ttf
+          for font in Regular Medium SemiBold Bold Light; do
+            curl -fL "$BASE/Poppins-$font.ttf" -o "assets/fonts/Poppins-$font.ttf"
+          done
+          echo "✅ Fonts OK"
 
       - name: 🔥 Configurer Firebase
         working-directory: /tmp/denota_base
@@ -73,12 +72,15 @@ jobs:
             cp "$GITHUB_WORKSPACE/android/app/src/google-services.json" android/app/google-services.json
           fi
 
-      - name: 🔧 Appliquer config Gradle corrigée
+      - name: 🔧 Appliquer build.gradle.kts corrigé
         run: |
-          cp "$GITHUB_WORKSPACE/android/app/build.gradle.kts" /tmp/denota_base/android/app/build.gradle.kts
-          cp "$GITHUB_WORKSPACE/android/settings.gradle.kts" /tmp/denota_base/android/settings.gradle.kts
-          cp "$GITHUB_WORKSPACE/android/gradle/wrapper/gradle-wrapper.properties" /tmp/denota_base/android/gradle/wrapper/gradle-wrapper.properties
-          cp "$GITHUB_WORKSPACE/android/gradle.properties" /tmp/denota_base/android/gradle.properties
+          cp "$GITHUB_WORKSPACE/android/app/build.gradle.kts" \
+             /tmp/denota_base/android/app/build.gradle.kts
+          cp "$GITHUB_WORKSPACE/android/gradle/wrapper/gradle-wrapper.properties" \
+             /tmp/denota_base/android/gradle/wrapper/gradle-wrapper.properties
+          cp "$GITHUB_WORKSPACE/android/gradle.properties" \
+             /tmp/denota_base/android/gradle.properties
+          echo "✅ Gradle config appliquée"
 
       - name: 📦 flutter pub get
         working-directory: /tmp/denota_base
@@ -94,7 +96,8 @@ jobs:
         run: flutter build apk --debug --no-pub
 
       - name: 🔍 Localiser APK
-        run: find /tmp/denota_base -name "*.apk" 2>/dev/null
+        if: always()
+        run: find /tmp/denota_base/build -name "*.apk" 2>/dev/null || echo "Pas d'APK trouvé"
 
       - name: 📤 Upload APK Debug
         uses: actions/upload-artifact@v4
