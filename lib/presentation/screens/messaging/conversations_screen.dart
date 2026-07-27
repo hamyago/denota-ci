@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:timeago/timeago.dart' as timeago;
 import '../../../core/theme/app_colors.dart';
+import '../profile/profile_screen.dart';
 import '../../../data/repositories/messaging_repository.dart';
 import '../../../main.dart';
 
@@ -78,7 +79,7 @@ class _ConversationsScreenState extends State<ConversationsScreen> {
                         separatorBuilder: (_, __) => const Divider(height: 1, indent: 76, color: AppColors.grey200),
                         itemBuilder: (_, i) => _ConversationTile(
                           conv: _conversations[i],
-                          onTap: () => context.push('/chat/${_conversations[i].id}'),
+                          onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => ChatDetailScreen(conversationId: _conversations[i].id))),
                         ),
                       ),
                     ),
@@ -350,7 +351,7 @@ class _ChatScreenState extends State<ChatScreen> {
         title: _conv == null
             ? const Text('Conversation')
             : GestureDetector(
-                onTap: () => context.push('/profile/${_conv!.participant1 == _myId ? _conv!.participant2 : _conv!.participant1}'),
+                onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => ProfileScreen(userId: _conv!.participant1 == _myId ? _conv!.participant2 : _conv!.participant1))),
                 child: Row(
                   children: [
                     CircleAvatar(
@@ -730,7 +731,7 @@ class _ContactRequestDialogState extends State<ContactRequestDialog> {
       );
       if (!mounted) return;
       Navigator.pop(context);
-      context.push('/chat/${conv.id}');
+      Navigator.of(context).push(MaterialPageRoute(builder: (_) => ChatDetailScreen(conversationId: conv.id)));
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(

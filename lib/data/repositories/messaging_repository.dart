@@ -136,7 +136,7 @@ class MessagingRepository {
       participant_2_data:profiles!participant_2(full_name, avatar_url, role)
     ''').eq('id', conversationId).maybeSingle();
     if (data == null) return null;
-    return ConversationModel.fromJson(data as Map<String, dynamic>, _myId);
+    return ConversationModel.fromJson(data, _myId);
   }
 
   // Vérifier si une conversation existe déjà
@@ -170,7 +170,7 @@ class MessagingRepository {
       'contact_reason': contactReason,
     }).select().single();
 
-    final conv = ConversationModel.fromJson(convData as Map<String, dynamic>, _myId);
+    final conv = ConversationModel.fromJson(convData, _myId);
 
     // Envoyer le premier message
     await sendMessage(conversationId: conv.id, body: firstMessage);
@@ -208,7 +208,7 @@ class MessagingRepository {
       *,
       sender:profiles!sender_id(full_name, avatar_url)
     ''').single();
-    return MessageModel.fromJson(data as Map<String, dynamic>);
+    return MessageModel.fromJson(data);
   }
 
   // Marquer messages comme lus
@@ -229,7 +229,6 @@ class MessagingRepository {
         .from('messages')
         .stream(primaryKey: ['id'])
         .eq('conversation_id', conversationId)
-        .order('created_at')
         .listen((data) {
           if (data.isNotEmpty) {
             final last = MessageModel.fromJson(data.last);
@@ -241,11 +240,11 @@ class MessagingRepository {
   StreamSubscription<List<Map<String, dynamic>>> subscribeToConversations({
     required void Function() onUpdate,
   }) {
+    // Stream ne supporte pas .or() ni .order() — on écoute tous les changements
+    // et on filtre côté appelant dans getConversations()
     return _client
         .from('conversations')
         .stream(primaryKey: ['id'])
-        .or('participant_1.eq.$_myId,participant_2.eq.$_myId')
-        .order('last_message_at')
         .listen((_) => onUpdate());
   }
 

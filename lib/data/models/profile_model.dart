@@ -436,6 +436,6 @@ class PostModel {
     if (durationSec == null) return '';
     final m = durationSec! ~/ 60;
     final s = durationSec! % 60;
-    return '${m}:${s.toString().padLeft(2, '0')}';
+    return '$m:${s.toString().padLeft(2, '0')}';
   }
 }

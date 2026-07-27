@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:timeago/timeago.dart' as timeago;
 import '../../../core/theme/app_colors.dart';
+import '../profile/profile_screen.dart';
+import '../search/discover_screen.dart';
 import '../../../data/repositories/recruiter_repository.dart';
 import '../../../data/services/scouting_pdf_service.dart';
 import '../../../main.dart';
@@ -94,7 +96,7 @@ class _RecruiterDashboardScreenState extends State<RecruiterDashboardScreen>
             )
           else
             IconButton(icon: const Icon(Icons.notifications_outlined), onPressed: () => _tabs.animateTo(2)),
-          IconButton(icon: const Icon(Icons.search), onPressed: () => context.push('/discover')),
+          IconButton(icon: const Icon(Icons.search), onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const DiscoverScreen()))),
         ],
         bottom: TabBar(
           controller: _tabs,
@@ -178,7 +180,7 @@ class _OverviewTab extends StatelessWidget {
                   icon: Icons.search,
                   label: 'Chercher\nun talent',
                   color: AppColors.primary,
-                  onTap: () => context.push('/discover'),
+                  onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const DiscoverScreen())),
                 )),
                 const SizedBox(width: 10),
                 Expanded(child: _QuickAction(
@@ -192,7 +194,7 @@ class _OverviewTab extends StatelessWidget {
                   icon: Icons.tune_outlined,
                   label: 'Filtres\navancés',
                   color: AppColors.accent,
-                  onTap: () => context.push('/discover'),
+                  onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const DiscoverScreen())),
                 )),
                 const SizedBox(width: 10),
                 Expanded(child: _QuickAction(
@@ -210,13 +212,13 @@ class _OverviewTab extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 const Text('Top Talents CI', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: AppColors.ink)),
-                TextButton(onPressed: () => context.push('/discover'), child: const Text('Voir tout →')),
+                TextButton(onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const DiscoverScreen())), child: const Text('Voir tout →')),
               ],
             ),
             const SizedBox(height: 10),
             ...topTalents.take(5).map((t) => _TalentListTile(
               talent: t,
-              onTap: () => context.push('/profile/${t['id']}'),
+              onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => ProfileScreen(userId: t['id'] as String))),
               onFavorite: () => repo.addFavorite(t['id'] as String),
               onPdf: () async {
                 _showPdfLoading(context);
@@ -408,7 +410,7 @@ class _FavoritesTabState extends State<_FavoritesTab> {
                       final fav = _favorites[i];
                       return _FavoriteCard(
                         favorite: fav,
-                        onTap: () => context.push('/profile/${fav.athleteId}'),
+                        onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => ProfileScreen(userId: fav.athleteId))),
                         onRemove: () => _removeFavorite(fav),
                         onNote: () => _showAddNoteDialog(fav),
                         onPdf: () async {
@@ -460,7 +462,7 @@ class _AlertsTabState extends State<_AlertsTab> {
 
   Future<void> _markAllRead() async {
     await widget.repo.markAllAlertsRead();
-    setState(() { for (final a in _alerts) {} });
+    setState(() { for (final alert in _alerts) { alert.isRead = true; } });
     _load();
   }
 
@@ -515,7 +517,7 @@ class _AlertsTabState extends State<_AlertsTab> {
                             _load();
                           }
                           if (context.mounted && a.athleteId.isNotEmpty) {
-                            context.push('/profile/${a.athleteId}');
+                            Navigator.of(context).push(MaterialPageRoute(builder: (_) => ProfileScreen(userId: a.athleteId)));
                           }
                         },
                       );
@@ -689,7 +691,7 @@ class _TalentListTile extends StatelessWidget {
                     color: AppColors.accentLight,
                     borderRadius: BorderRadius.circular(8),
                   ),
-                  child: Text('${score.toStringAsFixed(0)}',
+                  child: Text(score.toStringAsFixed(0),
                       style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: AppColors.accentDark)),
                 ),
                 const Text('Score', style: TextStyle(fontSize: 9, color: AppColors.grey400)),

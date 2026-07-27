@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:timeago/timeago.dart' as timeago;
 import '../../../core/theme/app_colors.dart';
-import '../../../core/router/app_router.dart';
 import '../../../data/models/profile_model.dart';
 import '../../../data/repositories/profile_repository.dart';
 import '../../../main.dart';
@@ -123,7 +122,7 @@ class _ProfileScreenState extends State<ProfileScreen>
             isOwn: _isOwn,
             isFollowing: _isFollowing,
             onFollow: _toggleFollow,
-            onEdit: () => context.push(Routes.editProfile),
+            onEdit: () => ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Édition du profil bientôt disponible'))),
           ),
         ],
         body: Column(

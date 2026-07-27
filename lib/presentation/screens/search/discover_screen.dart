@@ -3,7 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../../../core/theme/app_colors.dart';
-import '../../../core/router/app_router.dart';
+import '../profile/profile_screen.dart';
 import '../../../data/repositories/search_repository.dart';
 import '../../../data/repositories/recruiter_repository.dart';
 import '../../widgets/search/filter_sheet.dart';
@@ -214,14 +214,14 @@ class _DiscoverScreenState extends State<DiscoverScreen>
                                   scrollCtrl:   _scrollCtrl,
                                   loadingMore:  _loadingMore,
                                   favoriteIds:  _favoriteIds,
-                                  onTap:        (id) => context.push('/profile/$id'),
+                                  onTap:        (id) => Navigator.of(context).push(MaterialPageRoute(builder: (_) => ProfileScreen(userId: id))),
                                   onFavorite:   _toggleFavorite,
                                 ),
                                 // Grille
                                 _GridView(
                                   results:     _results,
                                   favoriteIds: _favoriteIds,
-                                  onTap:       (id) => context.push('/profile/$id'),
+                                  onTap:       (id) => Navigator.of(context).push(MaterialPageRoute(builder: (_) => ProfileScreen(userId: id))),
                                   onFavorite:  _toggleFavorite,
                                 ),
                               ],
