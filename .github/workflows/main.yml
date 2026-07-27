@@ -34,16 +34,12 @@ jobs:
           flutter create --org ci.denota --project-name denota /tmp/denota_base
           echo "✅ Base Flutter créée"
 
-      - name: 📋 Copier tout le code source
+      - name: 📋 Copier le code source
         run: |
-          # Code Dart
           cp -r lib/         /tmp/denota_base/lib/
-          # pubspec avec dependency_overrides
           cp pubspec.yaml    /tmp/denota_base/pubspec.yaml
-          # Autres assets
           cp -r supabase/    /tmp/denota_base/supabase/    2>/dev/null || true
           cp -r web_vitrine/ /tmp/denota_base/web_vitrine/ 2>/dev/null || true
-          echo "✅ Code copié"
 
       - name: 🔐 Créer .env
         working-directory: /tmp/denota_base
@@ -62,7 +58,6 @@ jobs:
           for font in Regular Medium SemiBold Bold Light; do
             curl -fL "$BASE/Poppins-$font.ttf" -o "assets/fonts/Poppins-$font.ttf"
           done
-          echo "✅ Fonts OK"
 
       - name: 🔥 Configurer Firebase
         working-directory: /tmp/denota_base
@@ -77,20 +72,43 @@ jobs:
 
       - name: 🔧 Appliquer config Gradle corrigée
         run: |
-          # build.gradle.kts avec compileSdk=35 fixe
           cp "$GITHUB_WORKSPACE/android/app/build.gradle.kts" \
              /tmp/denota_base/android/app/build.gradle.kts
-          # gradle.properties avec SDK versions forcées
           cp "$GITHUB_WORKSPACE/android/gradle.properties" \
              /tmp/denota_base/android/gradle.properties
-          # gradle wrapper compatible Flutter 3.24
           cp "$GITHUB_WORKSPACE/android/gradle/wrapper/gradle-wrapper.properties" \
              /tmp/denota_base/android/gradle/wrapper/gradle-wrapper.properties
-          echo "✅ Gradle config appliquée"
 
       - name: 📦 flutter pub get
         working-directory: /tmp/denota_base
         run: flutter pub get
+
+      - name: 🔧 Patcher app_links build.gradle
+        working-directory: /tmp/denota_base
+        run: |
+          # Trouver le build.gradle de app_links dans le cache pub
+          APP_LINKS_DIR=$(find $HOME/.pub-cache -path "*/app_links-*/android" -type d 2>/dev/null | head -1)
+          echo "app_links dir: $APP_LINKS_DIR"
+
+          if [ -n "$APP_LINKS_DIR" ]; then
+            # Vérifier si le fichier existe et patcher
+            for gradle_file in "$APP_LINKS_DIR/build.gradle" "$APP_LINKS_DIR/build.gradle.kts"; do
+              if [ -f "$gradle_file" ]; then
+                echo "Patching: $gradle_file"
+                # Ajouter compileSdkVersion s'il manque
+                if ! grep -q "compileSdk" "$gradle_file"; then
+                  sed -i '/^android {/a\    compileSdk 35' "$gradle_file"
+                  echo "✅ compileSdk ajouté à $(basename $gradle_file)"
+                else
+                  echo "✅ compileSdk déjà présent"
+                fi
+                cat "$gradle_file" | head -20
+              fi
+            done
+          else
+            echo "⚠️ app_links non trouvé dans pub-cache"
+            find $HOME/.pub-cache -name "*.gradle*" | grep -i "app_link" | head -5
+          fi
 
       - name: 🔍 Analyser le code
         working-directory: /tmp/denota_base

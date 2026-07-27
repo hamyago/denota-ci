@@ -92,3 +92,6 @@ flutter:
           weight: 700
         - asset: assets/fonts/Poppins-Light.ttf
           weight: 300
+
+dependency_overrides:
+  app_links: ^6.3.2
