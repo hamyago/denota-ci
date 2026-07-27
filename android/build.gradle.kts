@@ -5,7 +5,6 @@ allprojects {
     }
 }
 
-// Forcer compileSdk sur TOUS les sous-projets incluant les plugins
 subprojects {
     afterEvaluate {
         if (extensions.findByName("android") != null) {

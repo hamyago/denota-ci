@@ -22,16 +22,19 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
 
-      - name: 🐦 Setup Flutter 3.24
+      - name: 🐦 Setup Flutter stable
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.24.0'
           channel: 'stable'
           cache: true
+
+      - name: 📋 Version Flutter
+        run: flutter --version
 
       - name: 🏗️ Créer projet Flutter de base
         run: |
           flutter create --org ci.denota --project-name denota /tmp/denota_base
+          echo "✅ Base Flutter créée"
 
       - name: 📋 Copier le code source
         run: |
@@ -69,27 +72,24 @@ jobs:
             cp "$GITHUB_WORKSPACE/android/app/src/google-services.json" android/app/google-services.json
           fi
 
-      - name: 🔧 Appliquer tous les fichiers Gradle corrigés
+      - name: 🔧 Appliquer config Gradle
         run: |
-          # app/build.gradle.kts — compileSdk=35 fixe
-          cp "$GITHUB_WORKSPACE/android/app/build.gradle.kts" \
-             /tmp/denota_base/android/app/build.gradle.kts
-          # build.gradle.kts RACINE — force compileSdk sur tous les sous-projets
-          cp "$GITHUB_WORKSPACE/android/build.gradle.kts" \
-             /tmp/denota_base/android/build.gradle.kts
-          # gradle.properties
-          cp "$GITHUB_WORKSPACE/android/gradle.properties" \
-             /tmp/denota_base/android/gradle.properties
-          # gradle wrapper
-          cp "$GITHUB_WORKSPACE/android/gradle/wrapper/gradle-wrapper.properties" \
-             /tmp/denota_base/android/gradle/wrapper/gradle-wrapper.properties
-          echo "✅ Tous les fichiers Gradle appliqués"
-          echo "--- build.gradle.kts racine ---"
-          cat /tmp/denota_base/android/build.gradle.kts
+          cp "$GITHUB_WORKSPACE/android/app/build.gradle.kts"                     /tmp/denota_base/android/app/build.gradle.kts
+          cp "$GITHUB_WORKSPACE/android/build.gradle.kts"                          /tmp/denota_base/android/build.gradle.kts
+          cp "$GITHUB_WORKSPACE/android/settings.gradle.kts"                       /tmp/denota_base/android/settings.gradle.kts
+          cp "$GITHUB_WORKSPACE/android/gradle.properties"                         /tmp/denota_base/android/gradle.properties
+          cp "$GITHUB_WORKSPACE/android/gradle/wrapper/gradle-wrapper.properties"  /tmp/denota_base/android/gradle/wrapper/gradle-wrapper.properties
+          echo "--- Versions Gradle ---"
+          cat /tmp/denota_base/android/gradle/wrapper/gradle-wrapper.properties
+          cat /tmp/denota_base/android/settings.gradle.kts | grep "version"
 
       - name: 📦 flutter pub get
         working-directory: /tmp/denota_base
         run: flutter pub get
+
+      - name: 🔍 Version app_links résolue
+        working-directory: /tmp/denota_base
+        run: cat pubspec.lock | grep -A2 "app_links"
 
       - name: 🔍 Analyser le code
         working-directory: /tmp/denota_base
