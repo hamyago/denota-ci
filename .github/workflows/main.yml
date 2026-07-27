@@ -31,16 +31,27 @@ jobs:
       - name: 📋 Version Flutter + Dart
         run: flutter --version
 
-      - name: 🏗️ Créer projet Flutter de base
+      - name: 🏗️ Créer projet Flutter ET écraser lib/ immédiatement
         run: |
+          # Créer le projet de base
           flutter create --org ci.denota --project-name denota /tmp/denota_base
-
-      - name: 📋 Copier lib/ IMMÉDIATEMENT après flutter create
-        run: |
-          cp -r lib/ /tmp/denota_base/lib/
-          echo "✅ Notre lib/ copié — main.dart remplacé"
-          echo "=== Vérification main.dart ligne 30-35 ==="
+          
+          # Écraser IMMÉDIATEMENT le lib/ généré par flutter create
+          rm -rf /tmp/denota_base/lib/
+          cp -r "$GITHUB_WORKSPACE/lib/" /tmp/denota_base/lib/
+          
+          # Vérifier que notre main.dart est bien là
+          echo "=== Notre main.dart (wc -l) ==="
+          wc -l /tmp/denota_base/lib/main.dart
+          echo "=== Ligne 30-35 ==="
           sed -n '30,35p' /tmp/denota_base/lib/main.dart
+          
+          # Vérifier qu'il n'y a plus de dot-shorthands
+          if grep -r "\.fromSeed\|mainAxisAlignment: \.center" /tmp/denota_base/lib/; then
+            echo "⚠️ dot-shorthands encore présents !"
+          else
+            echo "✅ Pas de dot-shorthands — lib/ propre"
+          fi
 
       - name: 🔧 Appliquer config Gradle
         run: |
@@ -52,9 +63,9 @@ jobs:
 
       - name: 📋 Copier pubspec + assets
         run: |
-          cp pubspec.yaml    /tmp/denota_base/pubspec.yaml
-          cp -r supabase/    /tmp/denota_base/supabase/    2>/dev/null || true
-          cp -r web_vitrine/ /tmp/denota_base/web_vitrine/ 2>/dev/null || true
+          cp "$GITHUB_WORKSPACE/pubspec.yaml" /tmp/denota_base/pubspec.yaml
+          cp -r "$GITHUB_WORKSPACE/supabase/"    /tmp/denota_base/supabase/    2>/dev/null || true
+          cp -r "$GITHUB_WORKSPACE/web_vitrine/" /tmp/denota_base/web_vitrine/ 2>/dev/null || true
 
       - name: 🔐 Créer .env
         working-directory: /tmp/denota_base
