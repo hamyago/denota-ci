@@ -40,12 +40,11 @@ jobs:
       - name: 🔤 Télécharger fonts Poppins
         run: |
           BASE="https://github.com/google/fonts/raw/main/ofl/poppins"
-          curl -fL "$BASE/Poppins-Regular.ttf"   -o assets/fonts/Poppins-Regular.ttf
-          curl -fL "$BASE/Poppins-Medium.ttf"    -o assets/fonts/Poppins-Medium.ttf
-          curl -fL "$BASE/Poppins-SemiBold.ttf"  -o assets/fonts/Poppins-SemiBold.ttf
-          curl -fL "$BASE/Poppins-Bold.ttf"      -o assets/fonts/Poppins-Bold.ttf
-          curl -fL "$BASE/Poppins-Light.ttf"     -o assets/fonts/Poppins-Light.ttf
-          ls -la assets/fonts/
+          curl -fL "$BASE/Poppins-Regular.ttf"  -o assets/fonts/Poppins-Regular.ttf
+          curl -fL "$BASE/Poppins-Medium.ttf"   -o assets/fonts/Poppins-Medium.ttf
+          curl -fL "$BASE/Poppins-SemiBold.ttf" -o assets/fonts/Poppins-SemiBold.ttf
+          curl -fL "$BASE/Poppins-Bold.ttf"     -o assets/fonts/Poppins-Bold.ttf
+          curl -fL "$BASE/Poppins-Light.ttf"    -o assets/fonts/Poppins-Light.ttf
 
       - name: 🔥 Configurer Firebase
         env:
@@ -54,12 +53,8 @@ jobs:
           mkdir -p android/app
           if [ -n "$GOOGLE_SERVICES_JSON" ]; then
             echo "$GOOGLE_SERVICES_JSON" > android/app/google-services.json
-            echo "✅ google-services.json depuis secret"
           elif [ -f "android/app/src/google-services.json" ]; then
             cp android/app/src/google-services.json android/app/google-services.json
-            echo "✅ google-services.json copié depuis src/"
-          else
-            echo "⚠️ Aucun google-services.json trouvé"
           fi
 
       - name: 📦 flutter pub get
@@ -72,11 +67,15 @@ jobs:
       - name: 🏗️ Build APK Debug
         run: flutter build apk --debug --no-pub
 
+      - name: 🔍 Trouver l'APK généré
+        run: find . -name "*.apk" 2>/dev/null
+
       - name: 📤 Upload APK Debug
         uses: actions/upload-artifact@v4
         with:
-          name: DeNoTa-debug-${{ github.run_number }}.apk
+          name: DeNoTa-debug-${{ github.run_number }}
           path: build/app/outputs/flutter-apk/app-debug.apk
+          if-no-files-found: warn
           retention-days: 14
 
       - name: 🚀 Build APK Release
@@ -87,7 +86,7 @@ jobs:
         if: github.ref == 'refs/heads/main'
         uses: actions/upload-artifact@v4
         with:
-          name: DeNoTa-release-${{ github.run_number }}.apk
+          name: DeNoTa-release-${{ github.run_number }}
           path: build/app/outputs/flutter-apk/app-release.apk
           retention-days: 30
 
@@ -110,10 +109,5 @@ jobs:
     if: always()
     steps:
       - run: |
-          echo "=============================="
-          echo "  DeNoTa Build #${{ github.run_number }}"
-          echo "=============================="
-          echo "Branch  : ${{ github.ref_name }}"
-          echo "Commit  : ${{ github.sha }}"
-          echo "Status  : ${{ needs.build-android.result }}"
-          echo "=============================="
+          echo "Branch : ${{ github.ref_name }}"
+          echo "Status : ${{ needs.build-android.result }}"
