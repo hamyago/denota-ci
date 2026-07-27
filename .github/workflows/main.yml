@@ -34,30 +34,27 @@ jobs:
       - name: 🏗️ Créer projet Flutter de base
         run: |
           flutter create --org ci.denota --project-name denota /tmp/denota_base
-          echo "✅ Base Flutter créée"
 
-      - name: 🔧 Appliquer config Gradle AVANT pub get
+      - name: 📋 Copier lib/ IMMÉDIATEMENT après flutter create
+        run: |
+          cp -r lib/ /tmp/denota_base/lib/
+          echo "✅ Notre lib/ copié — main.dart remplacé"
+          echo "=== Vérification main.dart ligne 30-35 ==="
+          sed -n '30,35p' /tmp/denota_base/lib/main.dart
+
+      - name: 🔧 Appliquer config Gradle
         run: |
           cp "$GITHUB_WORKSPACE/android/app/build.gradle.kts"                     /tmp/denota_base/android/app/build.gradle.kts
           cp "$GITHUB_WORKSPACE/android/build.gradle.kts"                          /tmp/denota_base/android/build.gradle.kts
           cp "$GITHUB_WORKSPACE/android/settings.gradle.kts"                       /tmp/denota_base/android/settings.gradle.kts
           cp "$GITHUB_WORKSPACE/android/gradle.properties"                         /tmp/denota_base/android/gradle.properties
           cp "$GITHUB_WORKSPACE/android/gradle/wrapper/gradle-wrapper.properties"  /tmp/denota_base/android/gradle/wrapper/gradle-wrapper.properties
-          echo "✅ Gradle config appliquée"
 
-      - name: 📋 Copier pubspec AVANT pub get
-        run: cp pubspec.yaml /tmp/denota_base/pubspec.yaml
-
-      - name: 📦 flutter pub get
-        working-directory: /tmp/denota_base
-        run: flutter pub get
-
-      - name: 📋 Copier le code source APRES pub get
+      - name: 📋 Copier pubspec + assets
         run: |
-          cp -r lib/         /tmp/denota_base/lib/
+          cp pubspec.yaml    /tmp/denota_base/pubspec.yaml
           cp -r supabase/    /tmp/denota_base/supabase/    2>/dev/null || true
           cp -r web_vitrine/ /tmp/denota_base/web_vitrine/ 2>/dev/null || true
-          echo "✅ Code source copié"
 
       - name: 🔐 Créer .env
         working-directory: /tmp/denota_base
@@ -88,12 +85,9 @@ jobs:
             cp "$GITHUB_WORKSPACE/android/app/src/google-services.json" android/app/google-services.json
           fi
 
-      - name: 🔍 Vérifier lib/main.dart
-        run: |
-          echo "=== Notre main.dart (lignes 28-35) ==="
-          sed -n '28,35p' /tmp/denota_base/lib/main.dart
-          echo "=== Nombre de lignes ==="
-          wc -l /tmp/denota_base/lib/main.dart
+      - name: 📦 flutter pub get
+        working-directory: /tmp/denota_base
+        run: flutter pub get
 
       - name: 🔍 Analyser le code
         working-directory: /tmp/denota_base
