@@ -13,7 +13,6 @@ class AppTheme {
       primary: AppColors.primary,
       secondary: AppColors.accent,
       surface: AppColors.surface,
-      background: AppColors.background,
       error: AppColors.error,
       brightness: Brightness.light,
     ),

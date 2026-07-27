@@ -47,7 +47,7 @@ jobs:
           sed -n '30,35p' /tmp/denota_base/lib/main.dart
           
           # Vérifier qu'il n'y a plus de dot-shorthands
-          if grep -r "\.fromSeed\|mainAxisAlignment: \.center" /tmp/denota_base/lib/; then
+          if grep -rn ": \.[a-z]" /tmp/denota_base/lib/; then
             echo "⚠️ dot-shorthands encore présents !"
           else
             echo "✅ Pas de dot-shorthands — lib/ propre"
@@ -60,10 +60,14 @@ jobs:
           cp "$GITHUB_WORKSPACE/android/settings.gradle.kts"                       /tmp/denota_base/android/settings.gradle.kts
           cp "$GITHUB_WORKSPACE/android/gradle.properties"                         /tmp/denota_base/android/gradle.properties
           cp "$GITHUB_WORKSPACE/android/gradle/wrapper/gradle-wrapper.properties"  /tmp/denota_base/android/gradle/wrapper/gradle-wrapper.properties
+          # ⚠️ Indispensable : sans ce manifest l'APK perd les permissions
+          # (INTERNET, CAMERA, LOCATION…) et le nom "DeNoTa"
+          cp "$GITHUB_WORKSPACE/android/app/src/main/AndroidManifest.xml"          /tmp/denota_base/android/app/src/main/AndroidManifest.xml
 
       - name: 📋 Copier pubspec + assets
         run: |
-          cp "$GITHUB_WORKSPACE/pubspec.yaml" /tmp/denota_base/pubspec.yaml
+          cp "$GITHUB_WORKSPACE/pubspec.yaml"           /tmp/denota_base/pubspec.yaml
+          cp "$GITHUB_WORKSPACE/analysis_options.yaml"  /tmp/denota_base/analysis_options.yaml
           cp -r "$GITHUB_WORKSPACE/supabase/"    /tmp/denota_base/supabase/    2>/dev/null || true
           cp -r "$GITHUB_WORKSPACE/web_vitrine/" /tmp/denota_base/web_vitrine/ 2>/dev/null || true
 
@@ -99,6 +103,10 @@ jobs:
       - name: 📦 flutter pub get
         working-directory: /tmp/denota_base
         run: flutter pub get
+
+      - name: 📊 Vérifier les versions des plugins
+        working-directory: /tmp/denota_base
+        run: flutter pub outdated || true
 
       - name: 🔍 Analyser le code
         working-directory: /tmp/denota_base

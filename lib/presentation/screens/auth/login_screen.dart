@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:animate_do/animate_do.dart';
 
 import '../../../core/theme/app_colors.dart';
-import '../../../../core/router/app_router.dart';
+import '../../../core/router/app_router.dart';
 import '../../../main.dart';
 
 class LoginScreen extends StatefulWidget {

@@ -51,3 +51,6 @@ assets/fonts/*.ttf
 # Linux
 **/linux/flutter/generated_plugin_registrant.*
 **/linux/flutter/generated_plugins.cmake
+
+# Lock — le CI régénère
+pubspec.lock

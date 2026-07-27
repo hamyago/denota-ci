@@ -13,7 +13,7 @@ class AppNavigator {
 
   static NavigatorState get navigator => navigatorKey.currentState!;
 
-  static void goToFeed() => _replace(const HomeShell(child: FeedScreen()));
+  static void goToFeed() => _replace(const HomeShell());
   static void goToLogin() => _replace(const LoginScreen());
   static void goToOnboarding() => _replace(const OnboardingScreen());
   static void goToRegister() => navigator.push(
@@ -60,9 +60,7 @@ class AppRouter {
         return MaterialPageRoute(builder: (_) => const RegisterScreen());
       case Routes.feed:
       default:
-        return MaterialPageRoute(
-          builder: (_) => const HomeShell(child: FeedScreen()),
-        );
+        return MaterialPageRoute(builder: (_) => const HomeShell());
     }
   }
 

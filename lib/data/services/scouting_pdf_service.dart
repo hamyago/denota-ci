@@ -318,10 +318,12 @@ class ScoutingPdfService {
 
   // ── Partager le PDF ────────────────────────────────────
   Future<void> shareReport(File file, String athleteName) async {
-    await Share.shareXFiles(
-      [XFile(file.path)],
-      subject: 'Rapport de scouting — $athleteName — DeNoTa',
-      text: 'Rapport de scouting généré par DeNoTa CI',
+    await SharePlus.instance.share(
+      ShareParams(
+        files: [XFile(file.path)],
+        subject: 'Rapport de scouting — $athleteName — DeNoTa',
+        text: 'Rapport de scouting généré par DeNoTa CI',
+      ),
     );
   }
 

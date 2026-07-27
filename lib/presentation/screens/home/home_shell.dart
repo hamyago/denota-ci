@@ -8,8 +8,7 @@ import '../home/notifications_screen.dart';
 import '../profile/profile_screen.dart';
 
 class HomeShell extends StatefulWidget {
-  final Widget? child;
-  const HomeShell({super.key, this.child});
+  const HomeShell({super.key});
 
   @override
   State<HomeShell> createState() => _HomeShellState();

@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:timeago/timeago.dart' as timeago;
 
 import 'core/router/app_router.dart';
 import 'core/theme/app_theme.dart';
@@ -21,6 +22,9 @@ void main() async {
       statusBarIconBrightness: Brightness.dark,
     ),
   );
+
+  timeago.setLocaleMessages('fr', timeago.FrMessages());
+  timeago.setDefaultLocale('fr');
 
   await dotenv.load(fileName: '.env');
 
