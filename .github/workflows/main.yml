@@ -34,12 +34,15 @@ jobs:
           flutter create --org ci.denota --project-name denota /tmp/denota_base
           echo "✅ Base Flutter créée"
 
-      - name: 📋 Copier le code source
+      - name: 📋 Copier tout le code source
         run: |
-          cp -r lib/                /tmp/denota_base/lib/
-          cp pubspec.yaml           /tmp/denota_base/pubspec.yaml
-          cp -r supabase/           /tmp/denota_base/supabase/ 2>/dev/null || true
-          cp -r web_vitrine/        /tmp/denota_base/web_vitrine/ 2>/dev/null || true
+          # Code Dart
+          cp -r lib/         /tmp/denota_base/lib/
+          # pubspec avec dependency_overrides
+          cp pubspec.yaml    /tmp/denota_base/pubspec.yaml
+          # Autres assets
+          cp -r supabase/    /tmp/denota_base/supabase/    2>/dev/null || true
+          cp -r web_vitrine/ /tmp/denota_base/web_vitrine/ 2>/dev/null || true
           echo "✅ Code copié"
 
       - name: 🔐 Créer .env
@@ -72,14 +75,17 @@ jobs:
             cp "$GITHUB_WORKSPACE/android/app/src/google-services.json" android/app/google-services.json
           fi
 
-      - name: 🔧 Appliquer build.gradle.kts corrigé
+      - name: 🔧 Appliquer config Gradle corrigée
         run: |
+          # build.gradle.kts avec compileSdk=35 fixe
           cp "$GITHUB_WORKSPACE/android/app/build.gradle.kts" \
              /tmp/denota_base/android/app/build.gradle.kts
-          cp "$GITHUB_WORKSPACE/android/gradle/wrapper/gradle-wrapper.properties" \
-             /tmp/denota_base/android/gradle/wrapper/gradle-wrapper.properties
+          # gradle.properties avec SDK versions forcées
           cp "$GITHUB_WORKSPACE/android/gradle.properties" \
              /tmp/denota_base/android/gradle.properties
+          # gradle wrapper compatible Flutter 3.24
+          cp "$GITHUB_WORKSPACE/android/gradle/wrapper/gradle-wrapper.properties" \
+             /tmp/denota_base/android/gradle/wrapper/gradle-wrapper.properties
           echo "✅ Gradle config appliquée"
 
       - name: 📦 flutter pub get
@@ -97,7 +103,7 @@ jobs:
 
       - name: 🔍 Localiser APK
         if: always()
-        run: find /tmp/denota_base/build -name "*.apk" 2>/dev/null || echo "Pas d'APK trouvé"
+        run: find /tmp/denota_base/build -name "*.apk" 2>/dev/null || echo "Pas d'APK"
 
       - name: 📤 Upload APK Debug
         uses: actions/upload-artifact@v4
