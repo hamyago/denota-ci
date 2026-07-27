@@ -32,7 +32,6 @@ jobs:
       - name: 🏗️ Créer projet Flutter de base
         run: |
           flutter create --org ci.denota --project-name denota /tmp/denota_base
-          echo "✅ Base Flutter créée"
 
       - name: 📋 Copier le code source
         run: |
@@ -70,45 +69,27 @@ jobs:
             cp "$GITHUB_WORKSPACE/android/app/src/google-services.json" android/app/google-services.json
           fi
 
-      - name: 🔧 Appliquer config Gradle corrigée
+      - name: 🔧 Appliquer tous les fichiers Gradle corrigés
         run: |
+          # app/build.gradle.kts — compileSdk=35 fixe
           cp "$GITHUB_WORKSPACE/android/app/build.gradle.kts" \
              /tmp/denota_base/android/app/build.gradle.kts
+          # build.gradle.kts RACINE — force compileSdk sur tous les sous-projets
+          cp "$GITHUB_WORKSPACE/android/build.gradle.kts" \
+             /tmp/denota_base/android/build.gradle.kts
+          # gradle.properties
           cp "$GITHUB_WORKSPACE/android/gradle.properties" \
              /tmp/denota_base/android/gradle.properties
+          # gradle wrapper
           cp "$GITHUB_WORKSPACE/android/gradle/wrapper/gradle-wrapper.properties" \
              /tmp/denota_base/android/gradle/wrapper/gradle-wrapper.properties
+          echo "✅ Tous les fichiers Gradle appliqués"
+          echo "--- build.gradle.kts racine ---"
+          cat /tmp/denota_base/android/build.gradle.kts
 
       - name: 📦 flutter pub get
         working-directory: /tmp/denota_base
         run: flutter pub get
-
-      - name: 🔧 Patcher app_links build.gradle
-        working-directory: /tmp/denota_base
-        run: |
-          # Trouver le build.gradle de app_links dans le cache pub
-          APP_LINKS_DIR=$(find $HOME/.pub-cache -path "*/app_links-*/android" -type d 2>/dev/null | head -1)
-          echo "app_links dir: $APP_LINKS_DIR"
-
-          if [ -n "$APP_LINKS_DIR" ]; then
-            # Vérifier si le fichier existe et patcher
-            for gradle_file in "$APP_LINKS_DIR/build.gradle" "$APP_LINKS_DIR/build.gradle.kts"; do
-              if [ -f "$gradle_file" ]; then
-                echo "Patching: $gradle_file"
-                # Ajouter compileSdkVersion s'il manque
-                if ! grep -q "compileSdk" "$gradle_file"; then
-                  sed -i '/^android {/a\    compileSdk 35' "$gradle_file"
-                  echo "✅ compileSdk ajouté à $(basename $gradle_file)"
-                else
-                  echo "✅ compileSdk déjà présent"
-                fi
-                cat "$gradle_file" | head -20
-              fi
-            done
-          else
-            echo "⚠️ app_links non trouvé dans pub-cache"
-            find $HOME/.pub-cache -name "*.gradle*" | grep -i "app_link" | head -5
-          fi
 
       - name: 🔍 Analyser le code
         working-directory: /tmp/denota_base
