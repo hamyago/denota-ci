@@ -1,10 +1,10 @@
 // lib/presentation/screens/auth/login_screen.dart
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
+
 import 'package:animate_do/animate_do.dart';
 
 import '../../../core/theme/app_colors.dart';
-import '../../../core/router/app_router.dart';
+import '../../../../core/router/app_router.dart';
 import '../../../main.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -30,7 +30,7 @@ class _LoginScreenState extends State<LoginScreen> {
         password: _passCtrl.text,
       );
       if (!mounted) return;
-      context.go(Routes.feed);
+      AppNavigator.goToFeed();
     } catch (e) {
       setState(() => _error = 'Email ou mot de passe incorrect.');
     } finally {
@@ -223,7 +223,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           style: TextStyle(color: AppColors.grey500, fontSize: 14),
                         ),
                         TextButton(
-                          onPressed: () => context.go(Routes.register),
+                          onPressed: () => AppNavigator.goToRegister(),
                           style: TextButton.styleFrom(
                             padding: EdgeInsets.zero,
                             minimumSize: Size.zero,

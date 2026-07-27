@@ -1,12 +1,12 @@
 // lib/presentation/screens/auth/onboarding_screen.dart
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
+
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:smooth_page_indicator/smooth_page_indicator.dart';
 import 'package:animate_do/animate_do.dart';
 
 import '../../../core/theme/app_colors.dart';
-import '../../../core/router/app_router.dart';
+import '../../../../core/router/app_router.dart';
 
 class OnboardingScreen extends StatefulWidget {
   const OnboardingScreen({super.key});
@@ -46,7 +46,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool('onboarding_seen', true);
     if (!mounted) return;
-    context.go(Routes.login);
+    AppNavigator.goToLogin();
   }
 
   void _next() {
@@ -130,7 +130,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                   const SizedBox(height: 12),
                   if (_page == _slides.length - 1)
                     TextButton(
-                      onPressed: () => context.go(Routes.login),
+                      onPressed: () => AppNavigator.goToLogin(),
                       child: const Text(
                         'J\'ai déjà un compte',
                         style: TextStyle(

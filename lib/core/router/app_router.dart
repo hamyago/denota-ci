@@ -1,90 +1,73 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../presentation/screens/auth/splash_screen.dart';
 import '../../presentation/screens/auth/onboarding_screen.dart';
 import '../../presentation/screens/auth/login_screen.dart';
 import '../../presentation/screens/auth/register_screen.dart';
-import '../../presentation/screens/auth/register_role_screen.dart';
-import '../../presentation/screens/auth/otp_screen.dart';
 import '../../presentation/screens/home/home_shell.dart';
-import '../../presentation/screens/home/feed_screen.dart';
-import '../../presentation/screens/home/notifications_screen.dart';
-import '../../presentation/screens/profile/profile_screen.dart';
-import '../../presentation/screens/profile/edit_profile_screen.dart';
-import '../../presentation/screens/messaging/conversations_screen.dart';
-import '../../presentation/screens/messaging/chat_screen.dart';
-import '../../presentation/screens/search/discover_screen.dart';
-import '../../presentation/screens/post/create_post_screen.dart';
-import '../../presentation/screens/recruiter/recruiter_dashboard_screen.dart';
-import '../../presentation/screens/payment/payment_screen.dart';
 
-class AppRouter {
-  static final _rootKey  = GlobalKey<NavigatorState>();
-  static final _shellKey = GlobalKey<NavigatorState>();
+// Navigation simple avec Navigator 1.0 — pas de dépendance app_links
+class AppNavigator {
+  static final navigatorKey = GlobalKey<NavigatorState>();
 
-  static final router = GoRouter(
-    navigatorKey: _rootKey,
-    initialLocation: Routes.splash,
-    redirect: (context, state) {
-      final isAuth = Supabase.instance.client.auth.currentSession != null;
-      final onAuthPages = [Routes.splash, Routes.onboarding, Routes.login,
-        Routes.register, Routes.registerRole, Routes.otp]
-          .contains(state.matchedLocation);
-      if (!isAuth && !onAuthPages) return Routes.login;
-      if (isAuth && onAuthPages && state.matchedLocation != Routes.splash) {
-        return Routes.feed;
-      }
-      return null;
-    },
-    routes: [
-      GoRoute(path: Routes.splash,       builder: (_, __) => const SplashScreen()),
-      GoRoute(path: Routes.onboarding,   builder: (_, __) => const OnboardingScreen()),
-      GoRoute(path: Routes.login,        builder: (_, __) => const LoginScreen()),
-      GoRoute(path: Routes.register,     builder: (_, __) => const RegisterScreen()),
-      GoRoute(path: Routes.registerRole, builder: (_, __) => const RegisterRoleScreen()),
-      GoRoute(path: Routes.otp,          builder: (_, s)  => OtpScreen(phone: s.extra as String? ?? '')),
+  static NavigatorState get navigator => navigatorKey.currentState!;
 
-      ShellRoute(
-        navigatorKey: _shellKey,
-        builder: (_, __, child) => HomeShell(child: child),
-        routes: [
-          GoRoute(path: Routes.feed,          builder: (_, __) => const FeedScreen()),
-          GoRoute(path: Routes.discover,      builder: (_, __) => const DiscoverScreen()),
-          GoRoute(path: Routes.notifications, builder: (_, __) => const NotificationsScreen()),
-          GoRoute(path: Routes.conversations, builder: (_, __) => const ConversationsScreen()),
-          GoRoute(path: Routes.profile,       builder: (_, __) => const ProfileScreen()),
-        ],
-      ),
+  static void goToFeed() => _replace(const HomeShell(child: FeedScreen()));
+  static void goToLogin() => _replace(const LoginScreen());
+  static void goToOnboarding() => _replace(const OnboardingScreen());
+  static void goToRegister() => navigator.push(
+    MaterialPageRoute(builder: (_) => const RegisterScreen()));
 
-      GoRoute(path: Routes.profileView,   builder: (_, s)  => ProfileScreen(userId: s.pathParameters['id'])),
-      GoRoute(path: Routes.editProfile,   builder: (_, __) => const EditProfileScreen()),
-      GoRoute(path: Routes.chat,          builder: (_, s)  => ChatScreen(conversationId: s.pathParameters['id'] ?? '')),
-      GoRoute(path: Routes.createPost,    builder: (_, __) => const CreatePostScreen()),
-      GoRoute(path: Routes.recruiterDash, builder: (_, __) => const RecruiterDashboardScreen()),
-      GoRoute(path: Routes.payment,       builder: (_, s)  => PaymentScreen(plan: s.extra as String? ?? 'athlete_premium')),
-    ],
-  );
+  static void _replace(Widget page) {
+    navigator.pushAndRemoveUntil(
+      MaterialPageRoute(builder: (_) => page),
+      (_) => false,
+    );
+  }
 }
 
+// Routes en tant que constantes
 class Routes {
-  Routes._();
-  static const splash        = '/';
-  static const onboarding    = '/onboarding';
-  static const login         = '/login';
-  static const register      = '/register';
-  static const registerRole  = '/register/role';
-  static const otp           = '/otp';
-  static const feed          = '/feed';
-  static const discover      = '/discover';
-  static const notifications = '/notifications';
-  static const conversations = '/conversations';
-  static const profile       = '/profile';
-  static const profileView   = '/profile/:id';
-  static const editProfile   = '/profile/edit';
-  static const chat          = '/chat/:id';
-  static const createPost    = '/post/create';
-  static const recruiterDash = '/recruiter';
-  static const payment       = '/payment';
+  static const String splash        = '/';
+  static const String onboarding    = '/onboarding';
+  static const String login         = '/login';
+  static const String register      = '/register';
+  static const String registerRole  = '/register/role';
+  static const String otp           = '/otp';
+  static const String feed          = '/feed';
+  static const String discover      = '/discover';
+  static const String notifications = '/notifications';
+  static const String conversations = '/conversations';
+  static const String profile       = '/profile';
+  static const String editProfile   = '/profile/edit';
+  static const String createPost    = '/post/create';
+  static const String recruiterDash = '/recruiter';
+  static const String payment       = '/payment';
+}
+
+// Générateur de routes pour MaterialApp
+class AppRouter {
+  static Route<dynamic> onGenerateRoute(RouteSettings settings) {
+    switch (settings.name) {
+      case Routes.splash:
+        return MaterialPageRoute(builder: (_) => const SplashScreen());
+      case Routes.onboarding:
+        return MaterialPageRoute(builder: (_) => const OnboardingScreen());
+      case Routes.login:
+        return MaterialPageRoute(builder: (_) => const LoginScreen());
+      case Routes.register:
+        return MaterialPageRoute(builder: (_) => const RegisterScreen());
+      case Routes.feed:
+      default:
+        return MaterialPageRoute(
+          builder: (_) => const HomeShell(child: FeedScreen()),
+        );
+    }
+  }
+
+  static String initialRoute() {
+    final session = Supabase.instance.client.auth.currentSession;
+    return session != null ? Routes.feed : Routes.splash;
+  }
 }

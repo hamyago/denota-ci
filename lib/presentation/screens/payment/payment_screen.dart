@@ -1,6 +1,6 @@
+import 'package:denota/core/router/app_router.dart';
 // lib/presentation/screens/payment/payment_screen.dart
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../data/services/payment_service.dart';
 
@@ -83,7 +83,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
             const Text('Votre abonnement sera activé dès confirmation du paiement. Vous recevrez une notification.', style: TextStyle(fontSize: 13, color: AppColors.grey500, height: 1.5), textAlign: TextAlign.center),
             const SizedBox(height: 20),
             ElevatedButton(
-              onPressed: () { Navigator.pop(context); context.go('/feed'); },
+              onPressed: () { AppNavigator.goToFeed(); },
               child: const Text('Retour à l\'accueil'),
             ),
           ],

@@ -18,9 +18,6 @@ dependencies:
   bloc: ^8.1.4
   equatable: ^2.0.5
 
-  # ── Navigation (version stable sans conflits) ──
-  go_router: ^12.1.3
-
   # ── UI ────────────────────────────────────
   google_fonts: ^6.2.1
   cached_network_image: ^3.3.1
@@ -69,10 +66,6 @@ dependencies:
   # ── PDF ───────────────────────────────────
   pdf: ^3.11.1
   printing: ^5.13.1
-
-dependency_overrides:
-  # Forcer app_links à une version compatible avec compileSdk 35
-  app_links: ^6.3.2
 
 dev_dependencies:
   flutter_test:

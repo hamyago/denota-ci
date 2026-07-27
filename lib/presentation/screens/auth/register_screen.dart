@@ -1,6 +1,6 @@
 // lib/presentation/screens/auth/register_screen.dart
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
+
 import '../../../core/theme/app_colors.dart';
 import '../../../core/router/app_router.dart';
 import '../../../main.dart';
@@ -30,7 +30,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
         data: {'full_name': _nameCtrl.text.trim()},
       );
       if (!mounted) return;
-      context.go(Routes.registerRole);
+      Navigator.of(context).pop();
     } catch (e) {
       setState(() => _error = 'Erreur lors de l\'inscription. Réessaie.');
     } finally {
@@ -43,7 +43,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
     return Scaffold(
       backgroundColor: AppColors.white,
       appBar: AppBar(
-        leading: BackButton(onPressed: () => context.go(Routes.login)),
+        leading: BackButton(onPressed: () => Navigator.of(context).pop()),
         title: RichText(
           text: const TextSpan(
             style: TextStyle(fontFamily: 'Poppins', fontSize: 20, fontWeight: FontWeight.w700),
@@ -137,7 +137,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     children: [
                       const Text('Déjà un compte ? ', style: TextStyle(color: AppColors.grey500, fontSize: 14)),
                       TextButton(
-                        onPressed: () => context.go(Routes.login),
+                        onPressed: () => Navigator.of(context).pop(),
                         style: TextButton.styleFrom(padding: EdgeInsets.zero, minimumSize: Size.zero),
                         child: const Text('Se connecter', style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.w600, fontSize: 14)),
                       ),
@@ -177,9 +177,9 @@ class _RegisterRoleScreenState extends State<RegisterRoleScreen> {
     try {
       await supabase.from('profiles').update({'role': _role}).eq('id', supabase.auth.currentUser!.id);
       if (!mounted) return;
-      context.go(Routes.feed);
+      Navigator.of(context).pop();
     } catch (_) {
-      context.go(Routes.feed);
+      Navigator.of(context).pop();
     }
   }
 
@@ -283,7 +283,7 @@ class _OtpScreenState extends State<OtpScreen> {
         type: OtpType.sms,
       );
       if (!mounted) return;
-      context.go(Routes.registerRole);
+      Navigator.of(context).pop();
     } catch (_) {
       setState(() => _loading = false);
       ScaffoldMessenger.of(context).showSnackBar(
