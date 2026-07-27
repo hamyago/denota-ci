@@ -326,7 +326,7 @@ class _VideoPostTabState extends State<_VideoPostTab> {
               decoration: BoxDecoration(
                 color: AppColors.infoBg,
                 borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: AppColors.info.withOpacity(0.2)),
+                border: Border.all(color: AppColors.info.withValues(alpha: 0.2)),
               ),
               child: const Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -701,7 +701,7 @@ class _VideoDropZone extends StatelessWidget {
         decoration: BoxDecoration(
           color: AppColors.primaryBg,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: AppColors.primary.withOpacity(0.4), width: 2, style: BorderStyle.solid),
+          border: Border.all(color: AppColors.primary.withValues(alpha: 0.4), width: 2, style: BorderStyle.solid),
         ),
         child: const Column(
           mainAxisAlignment: MainAxisAlignment.center,

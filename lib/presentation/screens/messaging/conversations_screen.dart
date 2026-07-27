@@ -96,7 +96,7 @@ class _ConversationTile extends StatelessWidget {
     return ListTile(
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
       onTap: onTap,
-      tileColor: conv.hasUnread ? AppColors.primaryBg.withOpacity(0.4) : null,
+      tileColor: conv.hasUnread ? AppColors.primaryBg.withValues(alpha: 0.4) : null,
       leading: Stack(
         children: [
           CircleAvatar(
@@ -524,7 +524,7 @@ class _MessageBubble extends StatelessWidget {
                     ),
                     border: isMe ? null : Border.all(color: AppColors.grey200),
                     boxShadow: [
-                      BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 4, offset: const Offset(0, 2)),
+                      BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 4, offset: const Offset(0, 2)),
                     ],
                   ),
                   child: Text(

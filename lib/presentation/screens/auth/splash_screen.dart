@@ -56,7 +56,7 @@ class _SplashScreenState extends State<SplashScreen> {
                 shape: BoxShape.circle,
                 boxShadow: [
                   BoxShadow(
-                    color: AppColors.primary.withOpacity(0.4),
+                    color: AppColors.primary.withValues(alpha: 0.4),
                     blurRadius: 40,
                     spreadRadius: 8,
                   ),
@@ -97,7 +97,7 @@ class _SplashScreenState extends State<SplashScreen> {
               height: 32,
               child: CircularProgressIndicator(
                 strokeWidth: 2.5,
-                color: AppColors.accent.withOpacity(0.8),
+                color: AppColors.accent.withValues(alpha: 0.8),
               ),
             ),
           ],

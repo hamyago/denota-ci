@@ -285,7 +285,7 @@ class _ProfileHeader extends StatelessWidget {
                     shape: BoxShape.circle,
                     border: Border.all(color: AppColors.white, width: 4),
                     boxShadow: [
-                      BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 12),
+                      BoxShadow(color: Colors.black.withValues(alpha: 0.1), blurRadius: 12),
                     ],
                   ),
                   child: CircleAvatar(
@@ -699,7 +699,7 @@ class _AchievementsSection extends StatelessWidget {
                 decoration: BoxDecoration(
                   color: AppColors.accentLight,
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: AppColors.accent.withOpacity(0.3)),
+                  border: Border.all(color: AppColors.accent.withValues(alpha: 0.3)),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -1131,9 +1131,9 @@ class _KycBadge extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
       decoration: BoxDecoration(
-        color: _color.withOpacity(0.15),
+        color: _color.withValues(alpha: 0.15),
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: _color.withOpacity(0.4)),
+        border: Border.all(color: _color.withValues(alpha: 0.4)),
       ),
       child: Text(_label,
           style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: _color)),

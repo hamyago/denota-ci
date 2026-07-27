@@ -64,10 +64,25 @@ jobs:
           # (INTERNET, CAMERA, LOCATION…) et le nom "DeNoTa"
           cp "$GITHUB_WORKSPACE/android/app/src/main/AndroidManifest.xml"          /tmp/denota_base/android/app/src/main/AndroidManifest.xml
 
-      - name: 📋 Copier pubspec + assets
+      - name: 📋 Copier pubspec + assets + test
         run: |
           cp "$GITHUB_WORKSPACE/pubspec.yaml"           /tmp/denota_base/pubspec.yaml
           cp "$GITHUB_WORKSPACE/analysis_options.yaml"  /tmp/denota_base/analysis_options.yaml
+          
+          # Écraser le test/ généré par flutter create (référence MyApp)
+          rm -rf /tmp/denota_base/test/
+          cp -r "$GITHUB_WORKSPACE/test/" /tmp/denota_base/test/
+          
+          # Copier les ressources Android (styles, drawable, manifests debug/profile)
+          cp -r "$GITHUB_WORKSPACE/android/app/src/main/res/"     /tmp/denota_base/android/app/src/main/res/
+          cp "$GITHUB_WORKSPACE/android/app/src/debug/AndroidManifest.xml"   /tmp/denota_base/android/app/src/debug/AndroidManifest.xml
+          cp "$GITHUB_WORKSPACE/android/app/src/profile/AndroidManifest.xml" /tmp/denota_base/android/app/src/profile/AndroidManifest.xml
+          
+          # Copier MainActivity.kt
+          mkdir -p /tmp/denota_base/android/app/src/main/kotlin/ci/denota/denota/
+          cp "$GITHUB_WORKSPACE/android/app/src/main/kotlin/ci/denota/denota/MainActivity.kt" \
+             /tmp/denota_base/android/app/src/main/kotlin/ci/denota/denota/MainActivity.kt
+          
           cp -r "$GITHUB_WORKSPACE/supabase/"    /tmp/denota_base/supabase/    2>/dev/null || true
           cp -r "$GITHUB_WORKSPACE/web_vitrine/" /tmp/denota_base/web_vitrine/ 2>/dev/null || true
 
@@ -110,12 +125,11 @@ jobs:
 
       - name: 🔍 Analyser le code
         working-directory: /tmp/denota_base
-        run: flutter analyze --no-fatal-infos
-        continue-on-error: true
+        run: flutter analyze --no-fatal-infos --no-fatal-warnings
 
       - name: 🏗️ Build APK Debug
         working-directory: /tmp/denota_base
-        run: flutter build apk --debug --no-pub
+        run: flutter build apk --debug --no-pub --verbose 2>&1 | tail -80
 
       - name: 🔍 Localiser APK
         if: always()

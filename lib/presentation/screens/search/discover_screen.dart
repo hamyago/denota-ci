@@ -333,17 +333,22 @@ class _ActiveFiltersBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final chips = <String>[];
-    if (filters.sportId != null && _sportName(filters.sportId) != null)
+    if (filters.sportId != null && _sportName(filters.sportId) != null) {
       chips.add(_sportName(filters.sportId)!);
-    if (filters.level != null)
+    }
+    if (filters.level != null) {
       chips.add({'amateur': 'Amateur', 'semi_pro': 'Semi-Pro', 'professional': 'Pro'}[filters.level] ?? filters.level!);
-    if (filters.city != null) chips.add(filters.city!);
-    if (filters.ageMin != null || filters.ageMax != null)
+    }
+    if (filters.city != null) { chips.add(filters.city!); }
+    if (filters.ageMin != null || filters.ageMax != null) {
       chips.add('${filters.ageMin ?? "?"}–${filters.ageMax ?? "?"} ans');
-    if (filters.scoreMin != null && filters.scoreMin! > 0)
+    }
+    if (filters.scoreMin != null && filters.scoreMin! > 0) {
       chips.add('Score ≥ ${filters.scoreMin!.toStringAsFixed(0)}');
-    if (filters.availability != null)
+    }
+    if (filters.availability != null) {
       chips.add({'immediate': 'Dispo maintenant', '3_months': '3 mois', '6_months': '6 mois'}[filters.availability] ?? '');
+    }
 
     return Container(
       color: AppColors.white,
@@ -360,7 +365,7 @@ class _ActiveFiltersBar extends StatelessWidget {
                   decoration: BoxDecoration(
                     color: AppColors.primaryBg,
                     borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: AppColors.primary.withOpacity(0.3)),
+                    border: Border.all(color: AppColors.primary.withValues(alpha: 0.3)),
                   ),
                   child: Text(c, style: const TextStyle(fontSize: 12, color: AppColors.primary, fontWeight: FontWeight.w500)),
                 )).toList(),
@@ -392,7 +397,7 @@ class _SuggestionsDropdown extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppColors.white,
         border: Border(bottom: BorderSide(color: AppColors.grey200)),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 8, offset: const Offset(0, 4))],
+        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 8, offset: const Offset(0, 4))],
       ),
       child: ListView.builder(
         shrinkWrap: true,
@@ -599,7 +604,7 @@ class _AthleteListCard extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(color: AppColors.accentLight, borderRadius: BorderRadius.circular(8)),
-                  child: Text('${score.toStringAsFixed(0)}', style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: AppColors.accentDark)),
+                  child: Text(score.toStringAsFixed(0), style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: AppColors.accentDark)),
                 ),
                 const Text('Score', style: TextStyle(fontSize: 9, color: AppColors.grey400)),
                 const SizedBox(height: 4),

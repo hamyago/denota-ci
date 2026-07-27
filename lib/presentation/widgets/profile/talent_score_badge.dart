@@ -131,7 +131,7 @@ class _ScorePainter extends CustomPainter {
 
     // Glow effect
     final glowPaint = Paint()
-      ..color = color.withOpacity(0.2)
+      ..color = color.withValues(alpha: 0.2)
       ..style = PaintingStyle.stroke
       ..strokeWidth = 16
       ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 8);

@@ -296,7 +296,7 @@ class _FilterSheetState extends State<FilterSheet> {
                         min: 0, max: 100, divisions: 20,
                         activeColor: AppColors.accent,
                         inactiveColor: AppColors.grey200,
-                        label: '${(_filters.scoreMin ?? 0).toStringAsFixed(0)}',
+                        label: (_filters.scoreMin ?? 0).toStringAsFixed(0),
                         onChanged: (v) => setState(() => _filters = _filters.copyWith(scoreMin: v == 0 ? null : v)),
                       ),
                     ),
