@@ -1,4 +1,4 @@
-name: DeNoTa CI/CD
+﻿name: DeNoTa CI/CD
 
 on:
   push:
@@ -29,15 +29,31 @@ jobs:
           channel: 'stable'
           cache: true
 
+      - name: 🏗️ Créer projet Flutter complet
+        run: |
+          flutter create --org ci.denota --project-name denota /tmp/denota_base
+          echo "✅ Projet Flutter de base créé"
+
+      - name: 📋 Copier le code source
+        run: |
+          cp -r lib/ /tmp/denota_base/lib/
+          cp pubspec.yaml /tmp/denota_base/pubspec.yaml
+          cp -r supabase/ /tmp/denota_base/supabase/ 2>/dev/null || true
+          cp -r web_vitrine/ /tmp/denota_base/web_vitrine/ 2>/dev/null || true
+          echo "✅ Code source copié"
+
       - name: 🔐 Créer .env
+        working-directory: /tmp/denota_base
         run: |
           echo "SUPABASE_URL=${{ secrets.SUPABASE_URL }}" > .env
           echo "SUPABASE_ANON_KEY=${{ secrets.SUPABASE_ANON_KEY }}" >> .env
 
       - name: 📁 Créer dossiers assets
+        working-directory: /tmp/denota_base
         run: mkdir -p assets/images assets/icons assets/fonts
 
       - name: 🔤 Télécharger fonts Poppins
+        working-directory: /tmp/denota_base
         run: |
           BASE="https://github.com/google/fonts/raw/main/ofl/poppins"
           curl -fL "$BASE/Poppins-Regular.ttf"  -o assets/fonts/Poppins-Regular.ttf
@@ -47,39 +63,49 @@ jobs:
           curl -fL "$BASE/Poppins-Light.ttf"    -o assets/fonts/Poppins-Light.ttf
 
       - name: 🔥 Configurer Firebase
+        working-directory: /tmp/denota_base
         env:
           GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON }}
         run: |
-          mkdir -p android/app
           if [ -n "$GOOGLE_SERVICES_JSON" ]; then
             echo "$GOOGLE_SERVICES_JSON" > android/app/google-services.json
-          elif [ -f "android/app/src/google-services.json" ]; then
-            cp android/app/src/google-services.json android/app/google-services.json
+          elif [ -f "$GITHUB_WORKSPACE/android/app/src/google-services.json" ]; then
+            cp "$GITHUB_WORKSPACE/android/app/src/google-services.json" android/app/google-services.json
           fi
 
+      - name: 🔧 Appliquer config Gradle corrigée
+        run: |
+          cp "$GITHUB_WORKSPACE/android/app/build.gradle.kts" /tmp/denota_base/android/app/build.gradle.kts
+          cp "$GITHUB_WORKSPACE/android/settings.gradle.kts" /tmp/denota_base/android/settings.gradle.kts
+          cp "$GITHUB_WORKSPACE/android/gradle/wrapper/gradle-wrapper.properties" /tmp/denota_base/android/gradle/wrapper/gradle-wrapper.properties
+          cp "$GITHUB_WORKSPACE/android/gradle.properties" /tmp/denota_base/android/gradle.properties
+
       - name: 📦 flutter pub get
+        working-directory: /tmp/denota_base
         run: flutter pub get
 
       - name: 🔍 Analyser le code
+        working-directory: /tmp/denota_base
         run: flutter analyze --no-fatal-infos
         continue-on-error: true
 
       - name: 🏗️ Build APK Debug
+        working-directory: /tmp/denota_base
         run: flutter build apk --debug --no-pub
 
-      - name: 🔍 Trouver l'APK généré
-        run: find . -name "*.apk" 2>/dev/null
+      - name: 🔍 Localiser APK
+        run: find /tmp/denota_base -name "*.apk" 2>/dev/null
 
       - name: 📤 Upload APK Debug
         uses: actions/upload-artifact@v4
         with:
           name: DeNoTa-debug-${{ github.run_number }}
-          path: build/app/outputs/flutter-apk/app-debug.apk
-          if-no-files-found: warn
+          path: /tmp/denota_base/build/app/outputs/flutter-apk/app-debug.apk
           retention-days: 14
 
       - name: 🚀 Build APK Release
         if: github.ref == 'refs/heads/main'
+        working-directory: /tmp/denota_base
         run: flutter build apk --release --no-pub
 
       - name: 📤 Upload APK Release
@@ -87,7 +113,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: DeNoTa-release-${{ github.run_number }}
-          path: build/app/outputs/flutter-apk/app-release.apk
+          path: /tmp/denota_base/build/app/outputs/flutter-apk/app-release.apk
           retention-days: 30
 
   deploy-web:
@@ -110,4 +136,5 @@ jobs:
     steps:
       - run: |
           echo "Branch : ${{ github.ref_name }}"
+          echo "Build  : #${{ github.run_number }}"
           echo "Status : ${{ needs.build-android.result }}"
