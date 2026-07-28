@@ -462,7 +462,7 @@ class _AlertsTabState extends State<_AlertsTab> {
 
   Future<void> _markAllRead() async {
     await widget.repo.markAllAlertsRead();
-    setState(() { for (final alert in _alerts) { alert.isRead = true; } });
+    // isRead est final — on recharge simplement les données
     _load();
   }
 

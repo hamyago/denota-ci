@@ -195,7 +195,7 @@ class _ProfileSliverAppBar extends StatelessWidget {
           ? null
           : IconButton(
               icon: const Icon(Icons.arrow_back),
-              onPressed: () => context.pop(),
+              onPressed: () => Navigator.of(context).pop(),
             ),
       actions: [
         if (isOwn)

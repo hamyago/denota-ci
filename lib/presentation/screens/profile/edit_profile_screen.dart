@@ -179,7 +179,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           backgroundColor: AppColors.success,
         ),
       );
-      context.pop();
+      Navigator.of(context).pop();
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(

@@ -79,7 +79,7 @@ class _ConversationsScreenState extends State<ConversationsScreen> {
                         separatorBuilder: (_, __) => const Divider(height: 1, indent: 76, color: AppColors.grey200),
                         itemBuilder: (_, i) => _ConversationTile(
                           conv: _conversations[i],
-                          onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => ChatDetailScreen(conversationId: _conversations[i].id))),
+                          onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => ChatScreen(conversationId: _conversations[i].id))),
                         ),
                       ),
                     ),
@@ -455,7 +455,7 @@ class _ContactContextBanner extends StatelessWidget {
           const SizedBox(width: 8),
           Expanded(
             child: Text(
-              '${conv.contactReasonLabel}${conv.subject != null ? " · ${conv.subject}" : ""}",
+              '${conv.contactReasonLabel}${conv.subject != null ? " · ${conv.subject}" : ""}',
               style: const TextStyle(fontSize: 12, color: AppColors.primary, fontWeight: FontWeight.w500),
               overflow: TextOverflow.ellipsis,
             ),
@@ -731,7 +731,7 @@ class _ContactRequestDialogState extends State<ContactRequestDialog> {
       );
       if (!mounted) return;
       Navigator.pop(context);
-      Navigator.of(context).push(MaterialPageRoute(builder: (_) => ChatDetailScreen(conversationId: conv.id)));
+      Navigator.of(context).push(MaterialPageRoute(builder: (_) => ChatScreen(conversationId: conv.id)));
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(

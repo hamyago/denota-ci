@@ -1,6 +1,7 @@
 // lib/presentation/screens/post/create_post_screen.dart
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:video_compress/video_compress.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:video_player/video_player.dart';
 import '../../../core/theme/app_colors.dart';
@@ -205,7 +206,7 @@ class _VideoPostTabState extends State<_VideoPostTab> {
               duration: Duration(seconds: 3),
             ),
           );
-          context.pop();
+          Navigator.of(context).pop();
         }
         return;
       }
@@ -403,7 +404,7 @@ class _ArticlePostTabState extends State<_ArticlePostTab> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('✅ Article publié !'), backgroundColor: AppColors.success),
       );
-      context.pop();
+      Navigator.of(context).pop();
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -552,7 +553,7 @@ class _StatusPostTabState extends State<_StatusPostTab> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('✅ Statut publié !'), backgroundColor: AppColors.success),
       );
-      context.pop();
+      Navigator.of(context).pop();
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
