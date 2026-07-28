@@ -1,7 +1,6 @@
 // lib/presentation/screens/post/create_post_screen.dart
 import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:video_compress/video_compress.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:video_player/video_player.dart';
 import '../../../core/theme/app_colors.dart';
@@ -173,8 +172,8 @@ class _VideoPostTabState extends State<_VideoPostTab> {
       fileToUpload = await widget.videoService.compressVideo(
         _picked!.file,
         quality: _quality == 'high'
-            ? VideoQuality.HighestQuality
-            : VideoQuality.MediumQuality,
+            ? null
+            : null,
         onProgress: (p) => setState(() => _compressProgress = p),
       );
       setState(() => _compressing = false);

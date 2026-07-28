@@ -1,9 +1,13 @@
 // lib/data/services/video_service.dart
+//
+// Compression vidéo retirée (video_compress nécessite NDK natif C++
+// incompatible avec le CI GitHub). La vidéo est uploadée telle quelle.
+// TODO: réintégrer video_compress quand le build local sera disponible,
+// ou migrer vers ffmpeg_kit_flutter si besoin.
 import 'dart:io';
 import 'package:image_picker/image_picker.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:uuid/uuid.dart';
-import 'package:video_compress/video_compress.dart';
 
 class VideoPickResult {
   final File file;
@@ -30,7 +34,7 @@ class VideoPickResult {
 }
 
 class UploadProgress {
-  final double percent;   // 0.0 → 1.0
+  final double percent; // 0.0 → 1.0
   final String label;
   final bool done;
   final String? error;
@@ -62,64 +66,24 @@ class VideoService {
     final file = File(xfile.path);
     final stat = await file.stat();
 
-    // Générer thumbnail
-    final thumb = await _generateThumbnail(file);
-
-    // Durée
-    int? durationMs;
-    try {
-      final info = await VideoCompress.getMediaInfo(xfile.path);
-      durationMs = info.duration?.round();
-    } catch (_) {}
-
     return VideoPickResult(
       file: file,
-      thumbnail: thumb,
-      durationMs: durationMs,
+      thumbnail: null, // thumbnail via video_compress retiré
+      durationMs: null,
       fileSizeBytes: stat.size,
     );
   }
 
-  // ── Génération thumbnail ───────────────────────────────
-  Future<File?> _generateThumbnail(File videoFile) async {
-    try {
-      final thumb = await VideoCompress.getFileThumbnail(
-        videoFile.path,
-        quality: 75,
-        position: -1,
-      );
-      return thumb;
-    } catch (_) {
-      return null;
-    }
-  }
-
-  // ── Compression ────────────────────────────────────────
+  // ── Compression (no-op sans video_compress) ───────────
   Future<File> compressVideo(
     File file, {
-    VideoQuality quality = VideoQuality.MediumQuality,
+    dynamic quality,
     void Function(double)? onProgress,
   }) async {
-    // Écouter la progression
-    VideoCompress.compressProgress$.subscribe((prog) {
-      onProgress?.call(prog / 100);
-    });
-
-    try {
-      final info = await VideoCompress.compressVideo(
-        file.path,
-        quality: quality,
-        deleteOrigin: false,
-        includeAudio: true,
-      );
-
-      // Pas besoin d'unsubscribe — le subscribe ci-dessus est fire-and-forget
-
-      if (info?.file == null) return file; // fallback
-      return info!.file!;
-    } catch (e) {
-      return file; // fallback si compression échoue
-    }
+    // Sans video_compress, on retourne le fichier tel quel.
+    // La compression se fera côté serveur ou au prochain sprint.
+    onProgress?.call(1.0);
+    return file;
   }
 
   // ── Upload vers Supabase Storage ───────────────────────
@@ -139,7 +103,6 @@ class VideoService {
     final videoPath = '$authorId/$videoId.$videoExt';
 
     try {
-      // ── Étape 1 : Upload vidéo ─────────────────────────
       yield const UploadProgress(percent: 0.05, label: 'Préparation de la vidéo...');
 
       final videoBytes = await videoFile.readAsBytes();
@@ -163,7 +126,7 @@ class VideoService {
 
       yield const UploadProgress(percent: 0.65, label: 'Vidéo uploadée ✓');
 
-      // ── Étape 2 : Upload thumbnail ─────────────────────
+      // ── Upload thumbnail ─────────────────────────────
       String? thumbUrl;
       if (thumbnailFile != null) {
         yield const UploadProgress(percent: 0.70, label: 'Upload de la miniature...');
@@ -181,21 +144,21 @@ class VideoService {
         yield const UploadProgress(percent: 0.80, label: 'Miniature uploadée ✓');
       }
 
-      // ── Étape 3 : Enregistrement en base ──────────────
+      // ── Enregistrement en base ────────────────────────
       yield const UploadProgress(percent: 0.85, label: 'Enregistrement de la publication...');
 
       await _supabase.from('posts').insert({
-        'author_id':     authorId,
-        'content_type':  contentType,
-        'status':        'pending_moderation',
-        'title':         title,
-        'body':          body,
-        'tags':          tags,
-        'sport_id':      sportId,
-        'media_urls':    [videoUrl],
+        'author_id': authorId,
+        'content_type': contentType,
+        'status': 'pending_moderation',
+        'title': title,
+        'body': body,
+        'tags': tags,
+        'sport_id': sportId,
+        'media_urls': [videoUrl],
         'thumbnail_url': thumbUrl,
-        'duration_sec':  durationSec,
-        'published_at':  DateTime.now().toIso8601String(),
+        'duration_sec': durationSec,
+        'published_at': DateTime.now().toIso8601String(),
       });
 
       yield const UploadProgress(
@@ -215,7 +178,7 @@ class VideoService {
   // ── Upload article / statut (sans vidéo) ──────────────
   Future<void> createTextPost({
     required String authorId,
-    required String contentType, // 'article' | 'status'
+    required String contentType,
     required String body,
     String? title,
     List<String> tags = const [],
@@ -229,26 +192,27 @@ class VideoService {
       final path = '$authorId/${const Uuid().v4()}.$ext';
       final bytes = await imageFiles[i].readAsBytes();
       await _supabase.storage.from('posts').uploadBinary(
-        path, bytes,
+        path,
+        bytes,
         fileOptions: FileOptions(contentType: 'image/$ext', upsert: false),
       );
       mediaUrls.add(_supabase.storage.from('posts').getPublicUrl(path));
     }
 
     await _supabase.from('posts').insert({
-      'author_id':    authorId,
+      'author_id': authorId,
       'content_type': contentType,
-      'status':       'pending_moderation',
-      'title':        title,
-      'body':         body,
-      'tags':         tags,
-      'sport_id':     sportId,
-      'media_urls':   mediaUrls,
+      'status': 'pending_moderation',
+      'title': title,
+      'body': body,
+      'tags': tags,
+      'sport_id': sportId,
+      'media_urls': mediaUrls,
       'published_at': DateTime.now().toIso8601String(),
     });
   }
 
   void dispose() {
-    VideoCompress.cancelCompression();
+    // Rien à disposer sans video_compress
   }
 }
