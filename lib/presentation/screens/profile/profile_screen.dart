@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:timeago/timeago.dart' as timeago;
 import '../../../core/theme/app_colors.dart';
+import '../auth/login_screen.dart';
 import '../../../data/models/profile_model.dart';
 import '../../../data/repositories/profile_repository.dart';
 import '../../../main.dart';
@@ -96,6 +97,65 @@ class _ProfileScreenState extends State<ProfileScreen>
         if (_isFollowing) { _followersCount++; } else { _followersCount--; }
       });
     }
+  }
+
+  void _showSettingsMenu(BuildContext ctx) {
+    showModalBottomSheet(
+      context: ctx,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (_) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const SizedBox(height: 8),
+            Container(width: 40, height: 4, decoration: BoxDecoration(color: AppColors.grey200, borderRadius: BorderRadius.circular(2))),
+            const SizedBox(height: 16),
+            ListTile(
+              leading: const Icon(Icons.person_outline),
+              title: const Text('Modifier le profil'),
+              onTap: () {
+                Navigator.of(ctx).pop();
+                ScaffoldMessenger.of(ctx).showSnackBar(const SnackBar(content: Text('Édition du profil bientôt disponible')));
+              },
+            ),
+            const Divider(height: 1),
+            ListTile(
+              leading: const Icon(Icons.logout, color: Colors.red),
+              title: const Text('Se déconnecter', style: TextStyle(color: Colors.red)),
+              onTap: () async {
+                Navigator.of(ctx).pop();
+                final confirm = await showDialog<bool>(
+                  context: ctx,
+                  builder: (c) => AlertDialog(
+                    title: const Text('Déconnexion'),
+                    content: const Text('Es-tu sûr de vouloir te déconnecter ?'),
+                    actions: [
+                      TextButton(onPressed: () => Navigator.of(c).pop(false), child: const Text('Annuler')),
+                      TextButton(
+                        onPressed: () => Navigator.of(c).pop(true),
+                        child: const Text('Déconnecter', style: TextStyle(color: Colors.red)),
+                      ),
+                    ],
+                  ),
+                );
+                if (confirm == true) {
+                  await supabase.auth.signOut();
+                  if (ctx.mounted) {
+                    Navigator.of(ctx).pushAndRemoveUntil(
+                      MaterialPageRoute(builder: (_) => const LoginScreen()),
+                      (_) => false,
+                    );
+                  }
+                }
+              },
+            ),
+            const SizedBox(height: 16),
+          ],
+        ),
+      ),
+    );
   }
 
   @override
@@ -201,7 +261,7 @@ class _ProfileSliverAppBar extends StatelessWidget {
         if (isOwn)
           IconButton(
             icon: const Icon(Icons.settings_outlined),
-            onPressed: () {},
+            onPressed: () => _showSettingsMenu(context),
           ),
         if (!isOwn)
           IconButton(

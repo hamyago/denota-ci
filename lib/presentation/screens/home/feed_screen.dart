@@ -62,18 +62,8 @@ class _FeedScreenState extends State<FeedScreen> {
       final from = refresh ? 0 : _posts.length;
       final rows = await supabase
           .from('posts')
-          .select('''
-            id, author_id, content_type, status, title, body,
-            media_urls, thumbnail_url, duration_sec,
-            views_count, likes_count, comments_count,
-            published_at, created_at,
-            profiles!posts_author_id_fkey(
-              full_name, username, avatar_url,
-              athlete_profiles(talent_score, sports(name_fr))
-            )
-          ''')
+          .select('*')
           .eq('status', 'published')
-          .eq('content_type', 'video')
           .order('published_at', ascending: false)
           .range(from, from + _pageSize - 1);
 
@@ -102,7 +92,7 @@ class _FeedScreenState extends State<FeedScreen> {
       });
     } catch (e) {
       setState(() {
-        _error = 'Impossible de charger le fil. Vérifiez votre connexion.';
+        _error = 'Erreur : ${e.toString().length > 150 ? e.toString().substring(0, 150) : e.toString()}';
         _loading = false;
         _loadingMore = false;
       });
