@@ -32,7 +32,16 @@ class _RegisterScreenState extends State<RegisterScreen> {
       if (!mounted) return;
       Navigator.of(context).pop();
     } catch (e) {
-      setState(() => _error = 'Erreur lors de l\'inscription. Réessaie.');
+      final msg = e.toString();
+      if (msg.contains('email_address_not_authorized') || msg.contains('Signups not allowed')) {
+        setState(() => _error = 'Les inscriptions par email ne sont pas activées sur Supabase. Active Email Auth dans Authentication → Providers.');
+      } else if (msg.contains('already registered') || msg.contains('already_exists')) {
+        setState(() => _error = 'Cet email est déjà utilisé. Connecte-toi plutôt.');
+      } else if (msg.contains('invalid') && msg.contains('password')) {
+        setState(() => _error = 'Le mot de passe doit contenir au moins 6 caractères.');
+      } else {
+        setState(() => _error = 'Erreur : ${msg.length > 120 ? msg.substring(0, 120) : msg}');
+      }
     } finally {
       if (mounted) setState(() => _loading = false);
     }

@@ -32,7 +32,12 @@ class _LoginScreenState extends State<LoginScreen> {
       if (!mounted) return;
       AppNavigator.goToFeed();
     } catch (e) {
-      setState(() => _error = 'Email ou mot de passe incorrect.');
+      final msg = e.toString();
+      if (msg.contains('Invalid login') || msg.contains('invalid_credentials')) {
+        setState(() => _error = 'Email ou mot de passe incorrect.');
+      } else {
+        setState(() => _error = 'Erreur : ${msg.length > 120 ? msg.substring(0, 120) : msg}');
+      }
     } finally {
       if (mounted) setState(() => _loading = false);
     }
