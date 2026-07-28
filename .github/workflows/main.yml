@@ -129,11 +129,11 @@ jobs:
 
       - name: 🏗️ Build APK Debug
         working-directory: /tmp/denota_base
-        run: flutter build apk --debug --no-pub --verbose 2>&1 | tail -80
+        run: flutter build apk --debug --no-pub
 
       - name: 🔍 Localiser APK
         if: always()
-        run: find /tmp/denota_base/build -name "*.apk" 2>/dev/null || echo "Pas d'APK"
+        run: find /tmp/denota_base/build -name "*.apk" -type f 2>/dev/null | head -10 || echo "Pas d'APK"
 
       - name: 📤 Upload APK Debug
         uses: actions/upload-artifact@v4
@@ -142,18 +142,24 @@ jobs:
           path: /tmp/denota_base/build/app/outputs/flutter-apk/app-debug.apk
           retention-days: 14
 
-      - name: 🚀 Build APK Release
-        if: github.ref == 'refs/heads/main'
-        working-directory: /tmp/denota_base
-        run: flutter build apk --release --no-pub
-
-      - name: 📤 Upload APK Release
-        if: github.ref == 'refs/heads/main'
-        uses: actions/upload-artifact@v4
-        with:
-          name: DeNoTa-release-${{ github.run_number }}
-          path: /tmp/denota_base/build/app/outputs/flutter-apk/app-release.apk
-          retention-days: 30
+      # ⚠️ Build Release désactivé — nécessite un keystore de signature.
+      # Pour l'activer :
+      # 1. Générer un keystore : keytool -genkey -v -keystore denota-release.keystore ...
+      # 2. Ajouter les secrets GitHub : KEYSTORE_BASE64, KEY_ALIAS, KEY_PASSWORD, STORE_PASSWORD
+      # 3. Décommenter les étapes ci-dessous
+      #
+      # - name: 🚀 Build APK Release
+      #   if: github.ref == 'refs/heads/main'
+      #   working-directory: /tmp/denota_base
+      #   run: flutter build apk --release --no-pub
+      #
+      # - name: 📤 Upload APK Release
+      #   if: github.ref == 'refs/heads/main'
+      #   uses: actions/upload-artifact@v4
+      #   with:
+      #     name: DeNoTa-release-${{ github.run_number }}
+      #     path: /tmp/denota_base/build/app/outputs/flutter-apk/app-release.apk
+      #     retention-days: 30
 
   deploy-web:
     name: 🌐 Site Vitrine
