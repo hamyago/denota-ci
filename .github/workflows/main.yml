@@ -127,9 +127,16 @@ jobs:
         working-directory: /tmp/denota_base
         run: flutter analyze --no-fatal-infos --no-fatal-warnings
 
+      - name: 🔧 Installer le NDK requis
+        run: |
+          # video_compress requiert NDK + CMake pour le code natif C++
+          sdkmanager --install "ndk;27.0.12077973" "cmake;3.22.1" 2>/dev/null || true
+          echo "NDK installé"
+          ls $ANDROID_HOME/ndk/ 2>/dev/null || echo "Pas de NDK trouvé dans ANDROID_HOME"
+
       - name: 🏗️ Build APK Debug
         working-directory: /tmp/denota_base
-        run: flutter build apk --debug --no-pub
+        run: flutter build apk --debug --no-pub --android-skip-build-dependency-validation
 
       - name: 🔍 Localiser APK
         if: always()
