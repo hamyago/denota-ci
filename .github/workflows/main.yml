@@ -130,7 +130,7 @@ jobs:
       - name: 🔧 Installer le NDK requis
         run: |
           # video_compress requiert NDK + CMake pour le code natif C++
-          sdkmanager --install "ndk;27.0.12077973" "cmake;3.22.1" 2>/dev/null || true
+          sdkmanager --install "ndk;28.2.13676358" "cmake;3.22.1" 2>/dev/null || true
           echo "NDK installé"
           ls $ANDROID_HOME/ndk/ 2>/dev/null || echo "Pas de NDK trouvé dans ANDROID_HOME"
 
