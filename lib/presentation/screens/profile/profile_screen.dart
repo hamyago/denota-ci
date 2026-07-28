@@ -87,13 +87,13 @@ class _ProfileScreenState extends State<ProfileScreen>
 
   Future<void> _toggleFollow() async {
     setState(() => _isFollowing = !_isFollowing);
-    if (_isFollowing) _followersCount++; else _followersCount--;
+    if (_isFollowing) { _followersCount++; } else { _followersCount--; }
     try {
       await _repo.toggleFollow(_userId);
     } catch (_) {
       setState(() {
         _isFollowing = !_isFollowing;
-        if (_isFollowing) _followersCount++; else _followersCount--;
+        if (_isFollowing) { _followersCount++; } else { _followersCount--; }
       });
     }
   }

@@ -85,7 +85,7 @@ class _VideoPostTabState extends State<_VideoPostTab> {
   final _titleCtrl  = TextEditingController();
   final _bodyCtrl   = TextEditingController();
   final _tagCtrl    = TextEditingController();
-  List<String> _tags = [];
+  final List<String> _tags = [];
   int? _sportId;
   String _quality = 'medium';
 

@@ -69,9 +69,9 @@ class ScoutingPdfService {
                   children: [
                     pw.RichText(
                       text: pw.TextSpan(children: [
-                        pw.TextSpan('De', style: pw.TextStyle(fontSize: 28, fontWeight: pw.FontWeight.bold, color: _white)),
-                        pw.TextSpan('No', style: pw.TextStyle(fontSize: 28, fontWeight: pw.FontWeight.bold, color: _gold)),
-                        pw.TextSpan('Ta', style: pw.TextStyle(fontSize: 28, fontWeight: pw.FontWeight.bold, color: _white)),
+                        pw.TextSpan(text: 'De', style: pw.TextStyle(fontSize: 28, fontWeight: pw.FontWeight.bold, color: _white)),
+                        pw.TextSpan(text: 'No', style: pw.TextStyle(fontSize: 28, fontWeight: pw.FontWeight.bold, color: _gold)),
+                        pw.TextSpan(text: 'Ta', style: pw.TextStyle(fontSize: 28, fontWeight: pw.FontWeight.bold, color: _white)),
                       ]),
                     ),
                     pw.Text('Rapport de Scouting', style: pw.TextStyle(fontSize: 12, color: PdfColor.fromInt(0xFF9FE1CB))),
@@ -365,9 +365,10 @@ class ScoutingPdfService {
       pw.Expanded(
         child: pw.Stack(children: [
           pw.Container(height: 8, decoration: pw.BoxDecoration(color: PdfColor.fromInt(0xFFE8ECF0), borderRadius: pw.BorderRadius.circular(4))),
-          pw.FractionallySizedBox(
-            widthFactor: barWidth,
-            child: pw.Container(height: 8, decoration: pw.BoxDecoration(color: _green, borderRadius: pw.BorderRadius.circular(4))),
+          pw.Container(
+            width: barWidth * 200, // approximation sur 200pt de large
+            height: 8,
+            decoration: pw.BoxDecoration(color: _green, borderRadius: pw.BorderRadius.circular(4)),
           ),
         ]),
       ),

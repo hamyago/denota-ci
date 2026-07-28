@@ -180,7 +180,7 @@ class PaymentService {
     required String orderId,
   }) async {
     // Orange Money CI via USSD ou lien marchand
-    final uri = Uri.parse('tel:#144*82*${merchantCode}*${amountXof}*${orderId}#');
+    final uri = Uri.parse('tel:#144*82*$merchantCode*$amountXof*$orderId#');
     if (await canLaunchUrl(uri)) {
       await launchUrl(uri);
       return true;

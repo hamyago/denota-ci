@@ -1,8 +1,6 @@
 // lib/data/services/video_service.dart
 import 'dart:io';
-import 'package:flutter/foundation.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:path_provider/path_provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:uuid/uuid.dart';
 import 'package:video_compress/video_compress.dart';
@@ -25,7 +23,7 @@ class VideoPickResult {
     final sec = durationMs! ~/ 1000;
     final m = sec ~/ 60;
     final s = sec % 60;
-    return '${m}:${s.toString().padLeft(2, '0')}';
+    return '$m:${s.toString().padLeft(2, '0')}';
   }
 
   double get fileSizeMb => fileSizeBytes / (1024 * 1024);
@@ -115,7 +113,7 @@ class VideoService {
         includeAudio: true,
       );
 
-      VideoCompress.compressProgress$.unsubscribe((_) {});
+      // Pas besoin d'unsubscribe — le subscribe ci-dessus est fire-and-forget
 
       if (info?.file == null) return file; // fallback
       return info!.file!;
