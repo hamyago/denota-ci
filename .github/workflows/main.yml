@@ -72,6 +72,11 @@ jobs:
         working-directory: /tmp/denota_base
         run: mkdir -p assets/images assets/icons assets/fonts
 
+      - name: 🖼️ Copier les images (logo + icône)
+        run: |
+          cp "$GITHUB_WORKSPACE"/assets/images/*.png /tmp/denota_base/assets/images/ 2>/dev/null || echo "Pas de PNG à copier"
+          ls -la /tmp/denota_base/assets/images/
+
       - name: 🔤 Télécharger fonts Poppins
         working-directory: /tmp/denota_base
         run: |
@@ -92,6 +97,10 @@ jobs:
       - name: 📦 flutter pub get
         working-directory: /tmp/denota_base
         run: flutter pub get
+
+      - name: 🎨 Générer les icônes de lancement
+        working-directory: /tmp/denota_base
+        run: dart run flutter_launcher_icons
 
       - name: 🔍 Analyser le code
         working-directory: /tmp/denota_base

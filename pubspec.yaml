@@ -58,6 +58,20 @@ dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^6.0.0
+  flutter_launcher_icons: ^0.14.4
+
+# ── Configuration des icônes de lancement ────────────────────
+# Génère les icônes Android (adaptatives) et iOS à partir de
+# assets/images/. Lancer : flutter pub run flutter_launcher_icons
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: "assets/images/app_icon.png"
+  min_sdk_android: 23
+  remove_alpha_ios: true
+  background_color_ios: "#1B5E3B"
+  adaptive_icon_background: "#1B5E3B"
+  adaptive_icon_foreground: "assets/images/app_icon_foreground.png"
 
 flutter:
   uses-material-design: true

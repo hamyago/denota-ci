@@ -104,3 +104,35 @@ UPDATE profiles SET role = 'admin' WHERE email = 'TON_EMAIL_ADMIN';
 ```
 
 Puis reconnecte-toi : le premier onglet devient « Admin ».
+
+---
+
+# Mise à jour — Identité visuelle (icône + logo)
+
+## Fichiers ajoutés
+- `assets/images/icone.png` — l'icône seule (sans texte).
+- `assets/images/logo.png` — le logo officiel (avec « DeNoTa » + slogan).
+- `assets/images/app_icon.png` — source de l'icône d'app (1024×1024).
+- `assets/images/app_icon_foreground.png` — avant-plan pour l'icône
+  adaptative Android (design recentré dans la zone de sécurité).
+
+## Icône de l'application (Android + iOS)
+Ajout de **`flutter_launcher_icons`** dans `pubspec.yaml` :
+- Android : icône adaptative, fond vert `#1B5E3B`, avant-plan = l'icône.
+- iOS : icône pleine, alpha retiré (requis par l'App Store).
+La génération se lance avec `dart run flutter_launcher_icons` — c'est
+désormais **automatique dans le CI** (nouvelle étape « Générer les icônes »).
+
+## Logo dans l'app
+- **Splash screen** : le logo officiel remplace l'ancien texte + étoile,
+  posé sur le fond nuit `#0D1B2A` avec halo vert.
+- **Écran de connexion** : le logo officiel remplace le texte « DeNoTa »
+  (le slogan redondant a été retiré puisque le logo le contient déjà).
+- Les petits logos texte des barres d'app (feed, inscription) sont
+  conservés : à cette taille, le texte reste plus lisible que l'image.
+
+## En local (si tu veux régénérer les icônes toi-même)
+```bash
+flutter pub get
+dart run flutter_launcher_icons
+```

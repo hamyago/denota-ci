@@ -49,11 +49,10 @@ class _SplashScreenState extends State<SplashScreen> {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Container(
-              width: 120,
-              height: 120,
+              width: 200,
+              height: 200,
               decoration: BoxDecoration(
-                color: AppColors.primary,
-                shape: BoxShape.circle,
+                borderRadius: BorderRadius.circular(44),
                 boxShadow: [
                   BoxShadow(
                     color: AppColors.primary.withValues(alpha: 0.4),
@@ -62,26 +61,15 @@ class _SplashScreenState extends State<SplashScreen> {
                   ),
                 ],
               ),
-              child: const Center(
-                child: Icon(Icons.star, color: AppColors.accent, size: 52),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(44),
+                child: Image.asset(
+                  'assets/images/logo.png',
+                  fit: BoxFit.cover,
+                ),
               ),
             ),
             const SizedBox(height: 28),
-            RichText(
-              text: const TextSpan(
-                style: TextStyle(
-                  fontFamily: 'Poppins',
-                  fontSize: 40,
-                  fontWeight: FontWeight.w700,
-                ),
-                children: [
-                  TextSpan(text: 'De', style: TextStyle(color: Colors.white)),
-                  TextSpan(text: 'No', style: TextStyle(color: AppColors.accent)),
-                  TextSpan(text: 'Ta', style: TextStyle(color: Colors.white)),
-                ],
-              ),
-            ),
-            const SizedBox(height: 8),
             const Text(
               'Détection de Nouveaux Talents',
               style: TextStyle(

@@ -67,33 +67,11 @@ class _LoginScreenState extends State<LoginScreen> {
                 // ── Logo ────────────────────────────────
                 FadeInDown(
                   child: Center(
-                    child: RichText(
-                      text: const TextSpan(
-                        style: TextStyle(
-                          fontFamily: 'Poppins',
-                          fontSize: 36,
-                          fontWeight: FontWeight.w700,
-                        ),
-                        children: [
-                          TextSpan(text: 'De', style: TextStyle(color: AppColors.ink)),
-                          TextSpan(text: 'No', style: TextStyle(color: AppColors.primary)),
-                          TextSpan(text: 'Ta', style: TextStyle(color: AppColors.accent)),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 8),
-                FadeIn(
-                  delay: const Duration(milliseconds: 200),
-                  child: const Center(
-                    child: Text(
-                      'Détection de Nouveaux Talents',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: AppColors.grey400,
-                        letterSpacing: 0.3,
-                      ),
+                    child: Image.asset(
+                      'assets/images/logo.png',
+                      width: 180,
+                      height: 180,
+                      fit: BoxFit.contain,
                     ),
                   ),
                 ),
