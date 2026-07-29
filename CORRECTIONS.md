@@ -55,3 +55,52 @@ si tu veux fermer l'avertissement Supabase :
 `ALTER TABLE public.spatial_ref_sys ENABLE ROW LEVEL SECURITY;`
 (elle deviendra alors inaccessible en lecture — à ne faire que si tu n'utilises
 pas PostGIS côté client).
+
+---
+
+# Mise à jour — Dashboard multi-rôles (version finale)
+
+Fusion de la version corrigée (tous les correctifs ci-dessus) avec la
+fonctionnalité **dashboard** développée dans `denota-fixed-v16`.
+
+## Ce qui a été ajouté
+
+- **`admin/admin_dashboard_screen.dart`** — tableau de bord administrateur
+  à 3 onglets :
+  - *Vue globale* : statistiques (utilisateurs, actifs, posts, en attente) ;
+  - *Modération* : liste des posts `pending_moderation` avec boutons
+    Publier / Rejeter ;
+  - *Utilisateurs* : liste des inscrits avec activation / suspension.
+- **`home_shell.dart` désormais multi-rôles** : le premier onglet s'adapte
+  au rôle du profil connecté —
+  - `admin` → Dashboard admin,
+  - `recruiter` → Dashboard recruteur,
+  - autres (athlete/institution/sponsor) → Fil d'actualité.
+
+## Corrections apportées au dashboard lors de la fusion
+
+1. **`use_build_context_synchronously`** — `_moderatePost` et
+   `_toggleUserStatus` utilisaient `context` après un `await` sans garde.
+   Ajout de `if (!mounted) return;` (sinon le CI `flutter analyze` échoue,
+   comme lors du build précédent).
+2. **Publication depuis la modération** — quand l'admin publie un post,
+   on renseigne aussi `published_at`, sinon le post n'apparaît pas dans le
+   feed (qui trie par `published_at`).
+
+## Prérequis base de données
+
+- Les policies `posts_admin_all` et `profiles_admin_all` (fonction
+  `is_admin()`) existent déjà → l'admin peut tout lire/modérer. ✓
+- **Toujours à exécuter** : `supabase/migrations/006_payments_storage.sql`
+  (paiements + upload avatar/bannière).
+
+## Pour tester le dashboard admin
+
+Le dashboard n'apparaît que pour un profil `role = 'admin'`. Promeus un
+compte de test (garde ton compte athlète pour le reste) :
+
+```sql
+UPDATE profiles SET role = 'admin' WHERE email = 'TON_EMAIL_ADMIN';
+```
+
+Puis reconnecte-toi : le premier onglet devient « Admin ».
