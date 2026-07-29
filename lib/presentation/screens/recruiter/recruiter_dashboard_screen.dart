@@ -323,7 +323,7 @@ class _FavoritesTabState extends State<_FavoritesTab> {
     final ctrl = TextEditingController(text: fav.note);
     showDialog(
       context: context,
-      builder: (_) => AlertDialog(
+      builder: (dialogCtx) => AlertDialog(
         title: Text('Note — ${fav.athleteName}'),
         content: TextField(
           controller: ctrl,
@@ -331,11 +331,12 @@ class _FavoritesTabState extends State<_FavoritesTab> {
           decoration: const InputDecoration(hintText: 'Vos observations sur ce talent...'),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Annuler')),
+          TextButton(onPressed: () => Navigator.pop(dialogCtx), child: const Text('Annuler')),
           ElevatedButton(
             onPressed: () async {
+              final navigator = Navigator.of(dialogCtx);
               await widget.repo.updateFavoriteNote(fav.id, ctrl.text.trim());
-              Navigator.pop(context);
+              navigator.pop();
               _load();
             },
             child: const Text('Enregistrer'),

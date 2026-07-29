@@ -76,8 +76,6 @@ class _VideoPostTab extends StatefulWidget {
 class _VideoPostTabState extends State<_VideoPostTab> {
   VideoPickResult? _picked;
   VideoPlayerController? _playerCtrl;
-  bool _compressing = false;
-  double _compressProgress = 0;
   bool _uploading = false;
   UploadProgress? _uploadProgress;
 
@@ -232,14 +230,7 @@ class _VideoPostTabState extends State<_VideoPostTab> {
 
           // ── Progression upload ─────────────────────────
           if (_uploading) ...[
-            if (_compressing)
-              _ProgressCard(
-                icon: Icons.compress,
-                label: 'Compression vidéo...',
-                percent: _compressProgress,
-                color: AppColors.blue,
-              )
-            else if (_uploadProgress != null)
+            if (_uploadProgress != null)
               _ProgressCard(
                 icon: Icons.cloud_upload_outlined,
                 label: _uploadProgress!.label,
