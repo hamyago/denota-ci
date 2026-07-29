@@ -183,6 +183,7 @@ class _ProfileScreenState extends State<ProfileScreen>
             isFollowing: _isFollowing,
             onFollow: _toggleFollow,
             onEdit: () => ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Édition du profil bientôt disponible'))),
+              onSettings: () => _showSettingsMenu(context),
           ),
         ],
         body: Column(
@@ -231,7 +232,7 @@ class _ProfileSliverAppBar extends StatelessWidget {
   final AthleteProfileModel? athleteProfile;
   final int followersCount, followingCount, postsCount;
   final bool isOwn, isFollowing;
-  final VoidCallback onFollow, onEdit;
+  final VoidCallback onFollow, onEdit, onSettings;
 
   const _ProfileSliverAppBar({
     required this.profile,
@@ -243,6 +244,7 @@ class _ProfileSliverAppBar extends StatelessWidget {
     required this.isFollowing,
     required this.onFollow,
     required this.onEdit,
+    required this.onSettings,
   });
 
   @override
@@ -261,7 +263,7 @@ class _ProfileSliverAppBar extends StatelessWidget {
         if (isOwn)
           IconButton(
             icon: const Icon(Icons.settings_outlined),
-            onPressed: () => _showSettingsMenu(context),
+            onPressed: onSettings,
           ),
         if (!isOwn)
           IconButton(
