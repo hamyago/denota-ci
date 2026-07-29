@@ -5,6 +5,8 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:timeago/timeago.dart' as timeago;
 import '../../../core/theme/app_colors.dart';
 import '../profile/profile_screen.dart';
+import '../payment/payment_screen.dart';
+import '../../../data/services/payment_service.dart';
 import '../../../data/repositories/messaging_repository.dart';
 import '../../../main.dart';
 
@@ -190,7 +192,15 @@ class _PremiumGate extends StatelessWidget {
             ),
             const SizedBox(height: 32),
             ElevatedButton.icon(
-              onPressed: () {},
+              onPressed: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => const PaymentScreen(
+                      preselectedPlan: PlanId.athletePremium,
+                    ),
+                  ),
+                );
+              },
               icon: const Icon(Icons.star_outlined),
               label: const Text('Passer en Premium'),
               style: ElevatedButton.styleFrom(backgroundColor: AppColors.accent),

@@ -62,7 +62,16 @@ class _FeedScreenState extends State<FeedScreen> {
       final from = refresh ? 0 : _posts.length;
       final rows = await supabase
           .from('posts')
-          .select('*')
+          .select('''
+            *,
+            profiles!author_id(
+              full_name, avatar_url,
+              athlete_profiles(
+                talent_score,
+                sports:primary_sport_id(name_fr)
+              )
+            )
+          ''')
           .eq('status', 'published')
           .order('published_at', ascending: false)
           .range(from, from + _pageSize - 1);
@@ -201,7 +210,11 @@ class _FeedScreenState extends State<FeedScreen> {
           }
           final post = _posts[i];
           final profile = post['profiles'] as Map<String, dynamic>?;
-          final athlete = profile?['athlete_profiles'] as Map<String, dynamic>?;
+          // athlete_profiles est une relation → renvoyée sous forme de liste
+          final athleteList = profile?['athlete_profiles'] as List<dynamic>?;
+          final athlete = (athleteList != null && athleteList.isNotEmpty)
+              ? athleteList.first as Map<String, dynamic>?
+              : null;
           final sport =
               (athlete?['sports'] as Map<String, dynamic>?)?['name_fr']
                       as String? ??

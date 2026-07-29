@@ -4,6 +4,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:timeago/timeago.dart' as timeago;
 import '../../../core/theme/app_colors.dart';
 import '../auth/login_screen.dart';
+import 'edit_profile_screen.dart';
 import '../../../data/models/profile_model.dart';
 import '../../../data/repositories/profile_repository.dart';
 import '../../../main.dart';
@@ -86,6 +87,17 @@ class _ProfileScreenState extends State<ProfileScreen>
     }
   }
 
+  Future<void> _openEditProfile() async {
+    await Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => const EditProfileScreen()),
+    );
+    // Recharge le profil au retour (photo, bio, etc. peuvent avoir changé)
+    if (mounted) {
+      setState(() => _loading = true);
+      await _loadAll();
+    }
+  }
+
   Future<void> _toggleFollow() async {
     setState(() => _isFollowing = !_isFollowing);
     if (_isFollowing) { _followersCount++; } else { _followersCount--; }
@@ -117,7 +129,7 @@ class _ProfileScreenState extends State<ProfileScreen>
               title: const Text('Modifier le profil'),
               onTap: () {
                 Navigator.of(ctx).pop();
-                ScaffoldMessenger.of(ctx).showSnackBar(const SnackBar(content: Text('Édition du profil bientôt disponible')));
+                _openEditProfile();
               },
             ),
             const Divider(height: 1),
@@ -182,8 +194,8 @@ class _ProfileScreenState extends State<ProfileScreen>
             isOwn: _isOwn,
             isFollowing: _isFollowing,
             onFollow: _toggleFollow,
-            onEdit: () => ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Édition du profil bientôt disponible'))),
-              onSettings: () => _showSettingsMenu(context),
+            onEdit: _openEditProfile,
+            onSettings: () => _showSettingsMenu(context),
           ),
         ],
         body: Column(
@@ -675,6 +687,29 @@ class _PostTile extends StatelessWidget {
                 ),
               ),
             ),
+
+            // Badge « en attente de modération »
+            if (post.status == 'pending_moderation')
+              Positioned(
+                top: 8,
+                left: 8,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: AppColors.warning,
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: const Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.hourglass_top, color: Colors.white, size: 11),
+                      SizedBox(width: 3),
+                      Text('En attente',
+                          style: TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.w600)),
+                    ],
+                  ),
+                ),
+              ),
 
             // Type badge
             Positioned(

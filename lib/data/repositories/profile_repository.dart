@@ -3,6 +3,21 @@ import 'dart:io';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/profile_model.dart';
 
+/// Extension → type MIME accepté par les buckets avatars/banners
+/// (image/jpeg et non image/jpg, sinon l'upload est refusé).
+String _imageMime(String ext) {
+  switch (ext.toLowerCase()) {
+    case 'png':
+      return 'image/png';
+    case 'webp':
+      return 'image/webp';
+    case 'jpg':
+    case 'jpeg':
+    default:
+      return 'image/jpeg';
+  }
+}
+
 class ProfileRepository {
   final SupabaseClient _client;
 
@@ -65,25 +80,26 @@ class ProfileRepository {
   Future<String> uploadAvatar(File file) async {
     final user = _client.auth.currentUser;
     if (user == null) throw Exception('Non connecté');
-    final ext = file.path.split('.').last;
+    final ext = file.path.split('.').last.toLowerCase();
     final path = '${user.id}/avatar.$ext';
     await _client.storage.from('avatars').upload(
       path, file,
-      fileOptions: const FileOptions(upsert: true),
+      fileOptions: FileOptions(upsert: true, contentType: _imageMime(ext)),
     );
-    return _client.storage.from('avatars').getPublicUrl(path);
+    // Cache-busting : force le rechargement de l'image après ré-upload
+    return '${_client.storage.from('avatars').getPublicUrl(path)}?v=${DateTime.now().millisecondsSinceEpoch}';
   }
 
   Future<String> uploadBanner(File file) async {
     final user = _client.auth.currentUser;
     if (user == null) throw Exception('Non connecté');
-    final ext = file.path.split('.').last;
+    final ext = file.path.split('.').last.toLowerCase();
     final path = '${user.id}/banner.$ext';
     await _client.storage.from('banners').upload(
       path, file,
-      fileOptions: const FileOptions(upsert: true),
+      fileOptions: FileOptions(upsert: true, contentType: _imageMime(ext)),
     );
-    return _client.storage.from('banners').getPublicUrl(path);
+    return '${_client.storage.from('banners').getPublicUrl(path)}?v=${DateTime.now().millisecondsSinceEpoch}';
   }
 
   // ── Statistiques ───────────────────────────────────────
@@ -154,12 +170,21 @@ class ProfileRepository {
   // ── Publications ───────────────────────────────────────
 
   Future<List<PostModel>> getProfilePosts(String userId) async {
+    final currentUser = _client.auth.currentUser;
+    final isOwn = currentUser != null && currentUser.id == userId;
+
+    // Le propriétaire voit aussi ses posts en attente de modération,
+    // sinon il a l'impression que rien n'a été enregistré.
+    final statuses = isOwn
+        ? ['published', 'pending_moderation']
+        : ['published'];
+
     final data = await _client
         .from('posts')
         .select()
         .eq('author_id', userId)
-        .eq('status', 'published')
-        .order('published_at', ascending: false);
+        .inFilter('status', statuses)
+        .order('created_at', ascending: false);
     return (data as List)
         .map((e) => PostModel.fromJson(e as Map<String, dynamic>))
         .toList();

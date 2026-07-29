@@ -165,19 +165,9 @@ class _VideoPostTabState extends State<_VideoPostTab> {
 
     setState(() { _uploading = true; _uploadProgress = null; });
 
-    // Compression si demandée
-    File fileToUpload = _picked!.file;
-    if (_quality != 'original') {
-      setState(() { _compressing = true; _compressProgress = 0; });
-      fileToUpload = await widget.videoService.compressVideo(
-        _picked!.file,
-        quality: _quality == 'high'
-            ? null
-            : null,
-        onProgress: (p) => setState(() => _compressProgress = p),
-      );
-      setState(() => _compressing = false);
-    }
+    // La compression a été retirée (video_compress incompatible CI).
+    // Le fichier est uploadé tel quel — voir VideoService.
+    final File fileToUpload = _picked!.file;
 
     // Upload avec progression
     final stream = widget.videoService.uploadVideo(

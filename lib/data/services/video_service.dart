@@ -9,6 +9,39 @@ import 'package:image_picker/image_picker.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:uuid/uuid.dart';
 
+/// Convertit une extension de fichier en type MIME accepté par les
+/// buckets Supabase. Les buckets refusent 'video/mov' ou 'image/jpg' :
+/// il faut envoyer 'video/quicktime' / 'image/jpeg'.
+String _mimeForExt(String ext, {required bool video}) {
+  final e = ext.toLowerCase();
+  if (video) {
+    switch (e) {
+      case 'mov':
+        return 'video/quicktime';
+      case 'avi':
+        return 'video/x-msvideo';
+      case 'webm':
+        return 'video/webm';
+      case 'mp4':
+      default:
+        return 'video/mp4';
+    }
+  }
+  switch (e) {
+    case 'jpg':
+    case 'jpeg':
+      return 'image/jpeg';
+    case 'png':
+      return 'image/png';
+    case 'webp':
+      return 'image/webp';
+    case 'gif':
+      return 'image/gif';
+    default:
+      return 'image/jpeg';
+  }
+}
+
 class VideoPickResult {
   final File file;
   final File? thumbnail;
@@ -117,7 +150,7 @@ class VideoService {
         videoPath,
         videoBytes,
         fileOptions: FileOptions(
-          contentType: 'video/$videoExt',
+          contentType: _mimeForExt(videoExt, video: true),
           upsert: false,
         ),
       );
@@ -194,7 +227,7 @@ class VideoService {
       await _supabase.storage.from('posts').uploadBinary(
         path,
         bytes,
-        fileOptions: FileOptions(contentType: 'image/$ext', upsert: false),
+        fileOptions: FileOptions(contentType: _mimeForExt(ext, video: false), upsert: false),
       );
       mediaUrls.add(_supabase.storage.from('posts').getPublicUrl(path));
     }

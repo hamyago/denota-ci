@@ -1,7 +1,7 @@
 // lib/presentation/screens/auth/register_screen.dart
 import 'package:flutter/material.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../../core/router/app_router.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../main.dart';
 
@@ -30,7 +30,15 @@ class _RegisterScreenState extends State<RegisterScreen> {
         data: {'full_name': _nameCtrl.text.trim()},
       );
       if (!mounted) return;
-      Navigator.of(context).pop();
+      // Si l'email est confirmé automatiquement (session active), on
+      // enchaîne sur le choix du rôle ; sinon on revient à la connexion.
+      if (supabase.auth.currentUser != null) {
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(builder: (_) => const RegisterRoleScreen()),
+        );
+      } else {
+        Navigator.of(context).pop();
+      }
     } catch (e) {
       final msg = e.toString();
       if (msg.contains('email_address_not_authorized') || msg.contains('Signups not allowed')) {
@@ -186,9 +194,10 @@ class _RegisterRoleScreenState extends State<RegisterRoleScreen> {
     try {
       await supabase.from('profiles').update({'role': _role}).eq('id', supabase.auth.currentUser!.id);
       if (!mounted) return;
-      Navigator.of(context).pop();
+      AppNavigator.goToFeed();
     } catch (_) {
-      Navigator.of(context).pop();
+      if (!mounted) return;
+      AppNavigator.goToFeed();
     }
   }
 
