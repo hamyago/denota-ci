@@ -66,7 +66,7 @@ class _FeedScreenState extends State<FeedScreen> {
             *,
             profiles!author_id(
               full_name, avatar_url,
-              athlete_profiles(
+              athlete_profiles!athlete_profiles_profile_id_fkey(
                 talent_score,
                 sports:primary_sport_id(name_fr)
               )

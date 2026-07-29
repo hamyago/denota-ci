@@ -106,7 +106,7 @@ class SearchRepository {
         .from('profiles')
         .select('''
           id, full_name, username, avatar_url, city, country, kyc_level,
-          athlete_profiles(talent_score, level, sports(name_fr), positions(name_fr))
+          athlete_profiles!athlete_profiles_profile_id_fkey(talent_score, level, sports(name_fr), positions(name_fr))
         ''')
         .or('full_name.ilike.%$query%,username.ilike.%$query%')
         .eq('role', 'athlete')

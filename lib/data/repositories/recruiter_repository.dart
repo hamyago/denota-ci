@@ -162,7 +162,7 @@ class RecruiterRepository {
       *,
       athlete:profiles!athlete_id(
         full_name, username, avatar_url, city, kyc_level, is_minor,
-        athlete_profiles(
+        athlete_profiles!athlete_profiles_profile_id_fkey(
           talent_score, level,
           sports(name_fr),
           positions(name_fr)
