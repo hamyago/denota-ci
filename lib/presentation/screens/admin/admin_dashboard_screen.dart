@@ -279,87 +279,168 @@ class _StatItem {
 // ══════════════════════════════════════════════════════════
 // TAB 2 : Modération des posts
 // ══════════════════════════════════════════════════════════
-class _ModerationTab extends StatelessWidget {
+class _ModerationTab extends StatefulWidget {
   final List<Map<String, dynamic>> posts;
   final Future<void> Function(String postId, String newStatus) onModerate;
   const _ModerationTab({required this.posts, required this.onModerate});
 
   @override
+  State<_ModerationTab> createState() => _ModerationTabState();
+}
+
+class _ModerationTabState extends State<_ModerationTab> {
+  List<Map<String, dynamic>> _posts = [];
+  bool _loading = true;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    // On part des posts fournis par le parent, mais on recharge aussi
+    // directement (indépendant du timing de _loadAll).
+    _posts = widget.posts;
+    _load();
+  }
+
+  Future<void> _load() async {
+    setState(() { _loading = true; _error = null; });
+    try {
+      final data = await supabase
+          .from('posts')
+          .select('id, title, content_type, status, created_at, author_id')
+          .eq('status', 'pending_moderation')
+          .order('created_at', ascending: false)
+          .limit(50);
+      if (!mounted) return;
+      setState(() {
+        _posts = List<Map<String, dynamic>>.from(data as List);
+        _loading = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _error = e.toString();
+        _loading = false;
+      });
+    }
+  }
+
+  Future<void> _moderate(String postId, String newStatus) async {
+    await widget.onModerate(postId, newStatus);
+    // Retire immédiatement le post traité de la liste locale.
+    if (mounted) {
+      setState(() => _posts.removeWhere((p) => p['id'] == postId));
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
-    if (posts.isEmpty) {
-      return const Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.check_circle_outline, size: 56, color: AppColors.primary),
-            SizedBox(height: 16),
-            Text('Aucun post en attente', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
-            SizedBox(height: 4),
-            Text('Tous les contenus ont été modérés', style: TextStyle(color: AppColors.grey400, fontSize: 13)),
+    if (_loading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+    if (_error != null) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(Icons.error_outline, size: 48, color: Colors.red),
+              const SizedBox(height: 12),
+              Text('Erreur de chargement :\n$_error', textAlign: TextAlign.center,
+                  style: const TextStyle(fontSize: 13, color: AppColors.grey600)),
+              const SizedBox(height: 16),
+              FilledButton(onPressed: _load, child: const Text('Réessayer')),
+            ],
+          ),
+        ),
+      );
+    }
+    if (_posts.isEmpty) {
+      return RefreshIndicator(
+        onRefresh: _load,
+        child: ListView(
+          children: const [
+            SizedBox(height: 120),
+            Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.check_circle_outline, size: 56, color: AppColors.primary),
+                  SizedBox(height: 16),
+                  Text('Aucun post en attente', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+                  SizedBox(height: 4),
+                  Text('Tous les contenus ont été modérés', style: TextStyle(color: AppColors.grey400, fontSize: 13)),
+                ],
+              ),
+            ),
           ],
         ),
       );
     }
 
-    return ListView.separated(
-      padding: const EdgeInsets.all(16),
-      itemCount: posts.length,
-      separatorBuilder: (_, __) => const SizedBox(height: 8),
-      itemBuilder: (context, i) {
-        final post = posts[i];
-        final type = post['content_type'] as String? ?? 'video';
-        final title = post['title'] as String? ?? 'Sans titre';
-        final createdAt = post['created_at'] as String? ?? '';
+    return RefreshIndicator(
+      onRefresh: _load,
+      child: ListView.separated(
+        padding: const EdgeInsets.all(16),
+        itemCount: _posts.length,
+        separatorBuilder: (_, __) => const SizedBox(height: 8),
+        itemBuilder: (context, i) {
+          final post = _posts[i];
+          final type = post['content_type'] as String? ?? 'video';
+          final title = post['title'] as String? ?? 'Sans titre';
+          final createdAt = post['created_at'] as String? ?? '';
 
-        return Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: AppColors.white,
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Icon(
-                    type == 'video' ? Icons.videocam : type == 'article' ? Icons.article : Icons.short_text,
-                    color: AppColors.primary, size: 20,
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(child: Text(title, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14))),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                    decoration: BoxDecoration(color: Colors.orange.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(6)),
-                    child: const Text('En attente', style: TextStyle(fontSize: 10, color: Colors.orange, fontWeight: FontWeight.w600)),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 4),
-              Text('Type: $type  •  $createdAt', style: const TextStyle(fontSize: 11, color: AppColors.grey400)),
-              const SizedBox(height: 12),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  OutlinedButton.icon(
-                    onPressed: () => onModerate(post['id'] as String, 'rejected'),
-                    icon: const Icon(Icons.close, size: 16),
-                    label: const Text('Rejeter'),
-                    style: OutlinedButton.styleFrom(foregroundColor: Colors.red, side: const BorderSide(color: Colors.red)),
-                  ),
-                  const SizedBox(width: 8),
-                  FilledButton.icon(
-                    onPressed: () => onModerate(post['id'] as String, 'published'),
-                    icon: const Icon(Icons.check, size: 16),
-                    label: const Text('Publier'),
-                    style: FilledButton.styleFrom(backgroundColor: AppColors.primary),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        );
-      },
+          return Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: AppColors.white,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Icon(
+                      type == 'video' ? Icons.videocam : type == 'article' ? Icons.article : Icons.short_text,
+                      color: AppColors.primary, size: 20,
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(child: Text(title, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14))),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                      decoration: BoxDecoration(color: Colors.orange.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(6)),
+                      child: const Text('En attente', style: TextStyle(fontSize: 10, color: Colors.orange, fontWeight: FontWeight.w600)),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                Text('Type: $type  •  $createdAt', style: const TextStyle(fontSize: 11, color: AppColors.grey400)),
+                const SizedBox(height: 12),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    OutlinedButton.icon(
+                      onPressed: () => _moderate(post['id'] as String, 'rejected'),
+                      icon: const Icon(Icons.close, size: 16),
+                      label: const Text('Rejeter'),
+                      style: OutlinedButton.styleFrom(foregroundColor: Colors.red, side: const BorderSide(color: Colors.red)),
+                    ),
+                    const SizedBox(width: 8),
+                    FilledButton.icon(
+                      onPressed: () => _moderate(post['id'] as String, 'published'),
+                      icon: const Icon(Icons.check, size: 16),
+                      label: const Text('Publier'),
+                      style: FilledButton.styleFrom(backgroundColor: AppColors.primary),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          );
+        },
+      ),
     );
   }
 }
