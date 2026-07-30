@@ -168,3 +168,42 @@ Si le tab Modération apparaît vide, c'est que l'APK installé date d'un build
 antérieur : reconstruire avec cette version règle le problème. À la validation
 (« Publier »), `published_at` est renseigné pour que le contenu apparaisse
 aussitôt dans le feed.
+
+---
+
+# Nouvelle fonctionnalité — Validation des comptes par l'admin
+
+## Principe
+Certains rôles doivent être **validés par un administrateur** avant d'accéder
+à la plateforme. Par défaut : **recruteur, institution, expert** (ils accèdent
+à des données sensibles, dont des profils de mineurs). Les **athlètes** et
+**sponsors** restent actifs immédiatement (auto-inscription).
+
+Pour exiger aussi la validation des athlètes : ajouter `'athlete'` au tableau
+`v_roles_pending` dans la migration `008_account_approval.sql`.
+
+## Fonctionnement
+1. À l'inscription, un recruteur est créé avec `status = 'pending'`.
+2. Il voit un écran **« Compte en attente de validation »** (avec bouton
+   « Vérifier mon statut » et déconnexion) au lieu de l'application.
+3. L'admin voit le compte dans l'onglet **Utilisateurs** (les comptes en
+   attente apparaissent en premier, badge orange « En attente ») avec deux
+   boutons : ✓ **Valider** et ✗ **Refuser**.
+4. Validé → `active`, l'utilisateur accède à l'app. Refusé → `banned`, il voit
+   un écran « Compte non autorisé ».
+
+## Côté base (migration 008, déjà appliquée)
+- `handle_new_user` : attribue `pending` ou `active` selon le rôle.
+- `admin_approve_user(uuid)` / `admin_reject_user(uuid)` : fonctions
+  SECURITY DEFINER protégées par `is_admin()` (un non-admin ne peut pas les
+  appeler — vérifié).
+
+## Côté app
+- `home_shell` charge aussi le `status` et bloque l'accès si ≠ 'active'.
+- Nouvel écran `auth/account_status_screen.dart` (attente / refusé / suspendu).
+- Onglet Utilisateurs admin : boutons Valider / Refuser pour les comptes en
+  attente ; badges de statut colorés (Actif / En attente / Refusé / Suspendu).
+
+## Distinction importante
+- **Onglet Modération** = valide les *contenus* (vidéos, statuts, articles).
+- **Onglet Utilisateurs** = valide/gère les *comptes* (personnes).

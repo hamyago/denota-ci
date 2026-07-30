@@ -49,12 +49,13 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
           .limit(20);
       _pendingPosts = List<Map<String, dynamic>>.from(pending as List);
 
-      // Derniers inscrits
+      // Derniers inscrits — comptes en attente d'abord
       final users = await supabase
           .from('profiles')
           .select('id, full_name, email, role, status, created_at')
+          .order('status', ascending: true) // 'pending' avant 'active'
           .order('created_at', ascending: false)
-          .limit(20);
+          .limit(50);
       _recentUsers = List<Map<String, dynamic>>.from(users as List);
 
       setState(() { _loading = false; });
@@ -104,6 +105,38 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     }
   }
 
+  Future<void> _approveUser(String userId) async {
+    try {
+      await supabase.rpc('admin_approve_user', params: {'p_user_id': userId});
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Compte validé ✓')),
+      );
+      _loadAll();
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Erreur : $e'), backgroundColor: Colors.red),
+      );
+    }
+  }
+
+  Future<void> _rejectUser(String userId) async {
+    try {
+      await supabase.rpc('admin_reject_user', params: {'p_user_id': userId});
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Compte refusé')),
+      );
+      _loadAll();
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Erreur : $e'), backgroundColor: Colors.red),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return DefaultTabController(
@@ -139,7 +172,12 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                     children: [
                       _OverviewTab(stats: _stats),
                       _ModerationTab(posts: _pendingPosts, onModerate: _moderatePost),
-                      _UsersTab(users: _recentUsers, onToggleStatus: _toggleUserStatus),
+                      _UsersTab(
+                        users: _recentUsers,
+                        onToggleStatus: _toggleUserStatus,
+                        onApprove: _approveUser,
+                        onReject: _rejectUser,
+                      ),
                     ],
                   ),
       ),
@@ -332,7 +370,14 @@ class _ModerationTab extends StatelessWidget {
 class _UsersTab extends StatelessWidget {
   final List<Map<String, dynamic>> users;
   final Future<void> Function(String userId, String currentStatus) onToggleStatus;
-  const _UsersTab({required this.users, required this.onToggleStatus});
+  final Future<void> Function(String userId) onApprove;
+  final Future<void> Function(String userId) onReject;
+  const _UsersTab({
+    required this.users,
+    required this.onToggleStatus,
+    required this.onApprove,
+    required this.onReject,
+  });
 
   Color _roleColor(String role) {
     switch (role) {
@@ -374,6 +419,32 @@ class _UsersTab extends StatelessWidget {
         final role = user['role'] as String? ?? 'athlete';
         final status = user['status'] as String? ?? 'pending';
         final isActive = status == 'active';
+        final isPending = status == 'pending';
+
+        // Couleur + libellé du badge de statut
+        final Color statusColor;
+        final String statusLabel;
+        switch (status) {
+          case 'active':
+            statusColor = Colors.green;
+            statusLabel = 'Actif';
+            break;
+          case 'pending':
+            statusColor = AppColors.accent;
+            statusLabel = 'En attente';
+            break;
+          case 'banned':
+            statusColor = AppColors.error;
+            statusLabel = 'Refusé';
+            break;
+          case 'suspended':
+            statusColor = Colors.orange;
+            statusLabel = 'Suspendu';
+            break;
+          default:
+            statusColor = AppColors.grey400;
+            statusLabel = status;
+        }
 
         return Container(
           padding: const EdgeInsets.all(14),
@@ -409,11 +480,11 @@ class _UsersTab extends StatelessWidget {
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                           decoration: BoxDecoration(
-                            color: (isActive ? Colors.green : Colors.orange).withValues(alpha: 0.1),
+                            color: statusColor.withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(4),
                           ),
-                          child: Text(isActive ? 'Actif' : status,
-                            style: TextStyle(fontSize: 10, color: isActive ? Colors.green : Colors.orange, fontWeight: FontWeight.w600),
+                          child: Text(statusLabel,
+                            style: TextStyle(fontSize: 10, color: statusColor, fontWeight: FontWeight.w600),
                           ),
                         ),
                       ],
@@ -421,11 +492,28 @@ class _UsersTab extends StatelessWidget {
                   ],
                 ),
               ),
-              IconButton(
-                icon: Icon(isActive ? Icons.block : Icons.check_circle, color: isActive ? Colors.red : Colors.green, size: 20),
-                tooltip: isActive ? 'Suspendre' : 'Activer',
-                onPressed: () => onToggleStatus(user['id'] as String, status),
-              ),
+              if (isPending)
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.check_circle, color: Colors.green, size: 22),
+                      tooltip: 'Valider le compte',
+                      onPressed: () => onApprove(user['id'] as String),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.cancel, color: Colors.red, size: 22),
+                      tooltip: 'Refuser le compte',
+                      onPressed: () => onReject(user['id'] as String),
+                    ),
+                  ],
+                )
+              else
+                IconButton(
+                  icon: Icon(isActive ? Icons.block : Icons.check_circle, color: isActive ? Colors.red : Colors.green, size: 20),
+                  tooltip: isActive ? 'Suspendre' : 'Activer',
+                  onPressed: () => onToggleStatus(user['id'] as String, status),
+                ),
             ],
           ),
         );

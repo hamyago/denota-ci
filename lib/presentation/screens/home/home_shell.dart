@@ -9,6 +9,7 @@ import '../home/notifications_screen.dart';
 import '../profile/profile_screen.dart';
 import '../recruiter/recruiter_dashboard_screen.dart';
 import '../admin/admin_dashboard_screen.dart';
+import '../auth/account_status_screen.dart';
 
 class HomeShell extends StatefulWidget {
   const HomeShell({super.key});
@@ -20,6 +21,7 @@ class HomeShell extends StatefulWidget {
 class _HomeShellState extends State<HomeShell> {
   int _currentIndex = 0;
   String _role = 'athlete';
+  String _status = 'active';
   bool _roleLoaded = false;
 
   @override
@@ -34,12 +36,13 @@ class _HomeShellState extends State<HomeShell> {
       try {
         final data = await supabase
             .from('profiles')
-            .select('role')
+            .select('role, status')
             .eq('id', uid)
             .maybeSingle();
         if (data != null && mounted) {
           setState(() {
             _role = data['role'] as String? ?? 'athlete';
+            _status = data['status'] as String? ?? 'active';
             _roleLoaded = true;
           });
           return;
@@ -129,6 +132,18 @@ class _HomeShellState extends State<HomeShell> {
     if (!_roleLoaded) {
       return const Scaffold(
         body: Center(child: CircularProgressIndicator(color: AppColors.primary)),
+      );
+    }
+
+    // Compte non validé / bloqué : on n'affiche pas l'app, mais un écran
+    // d'attente ou de blocage (avec possibilité de re-vérifier / déconnexion).
+    if (_status != 'active') {
+      return AccountStatusScreen(
+        status: _status,
+        onRefresh: () async {
+          setState(() => _roleLoaded = false);
+          await _loadRole();
+        },
       );
     }
 
