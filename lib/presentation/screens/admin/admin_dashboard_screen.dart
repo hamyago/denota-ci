@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 import '../../../main.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../widgets/common/logout_action.dart';
 
 class AdminDashboardScreen extends StatefulWidget {
   const AdminDashboardScreen({super.key});
@@ -111,6 +112,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
         backgroundColor: AppColors.background,
         appBar: AppBar(
           title: const Text('Administration'),
+          actions: const [LogoutMenuButton()],
           bottom: const TabBar(
             labelColor: AppColors.primary,
             unselectedLabelColor: AppColors.grey400,
@@ -187,9 +189,9 @@ class _OverviewTab extends StatelessWidget {
       physics: const NeverScrollableScrollPhysics(),
       mainAxisSpacing: 12,
       crossAxisSpacing: 12,
-      childAspectRatio: 1.6,
+      childAspectRatio: 1.35,
       children: items.map((item) => Container(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
           color: AppColors.white,
           borderRadius: BorderRadius.circular(16),
@@ -199,9 +201,9 @@ class _OverviewTab extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Icon(item.icon, color: item.color, size: 28),
-            Text('${item.value}', style: TextStyle(fontSize: 28, fontWeight: FontWeight.w800, color: item.color)),
-            Text(item.label, style: const TextStyle(fontSize: 12, color: AppColors.grey400)),
+            Icon(item.icon, color: item.color, size: 24),
+            Text('${item.value}', style: TextStyle(fontSize: 26, fontWeight: FontWeight.w800, color: item.color)),
+            Text(item.label, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 12, color: AppColors.grey400)),
           ],
         ),
       )).toList(),

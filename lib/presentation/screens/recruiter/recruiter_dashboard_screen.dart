@@ -5,6 +5,7 @@ import 'package:timeago/timeago.dart' as timeago;
 import '../../../core/theme/app_colors.dart';
 import '../profile/profile_screen.dart';
 import '../search/discover_screen.dart';
+import '../../widgets/common/logout_action.dart';
 import '../../../data/repositories/recruiter_repository.dart';
 import '../../../data/services/scouting_pdf_service.dart';
 import '../../../main.dart';
@@ -97,6 +98,7 @@ class _RecruiterDashboardScreenState extends State<RecruiterDashboardScreen>
           else
             IconButton(icon: const Icon(Icons.notifications_outlined), onPressed: () => _tabs.animateTo(2)),
           IconButton(icon: const Icon(Icons.search), onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const DiscoverScreen()))),
+          const LogoutMenuButton(),
         ],
         bottom: TabBar(
           controller: _tabs,

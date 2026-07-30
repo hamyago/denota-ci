@@ -136,3 +136,35 @@ désormais **automatique dans le CI** (nouvelle étape « Générer les icônes 
 flutter pub get
 dart run flutter_launcher_icons
 ```
+
+---
+
+# Mise à jour — Déconnexion multi-rôles + overflow admin
+
+## Déconnexion recruteur / admin
+Les dashboards recruteur et admin n'avaient **aucun bouton de déconnexion** :
+un recruteur ou un admin arrivait sur son tableau de bord sans moyen visible
+de se déconnecter (il fallait deviner qu'il fallait aller dans l'onglet Profil).
+
+- Nouveau helper partagé `widgets/common/logout_action.dart` :
+  `LogoutMenuButton` (engrenage → menu → déconnexion avec confirmation).
+- Ajouté dans l'AppBar du **dashboard admin** et du **dashboard recruteur**.
+- La déconnexion depuis l'onglet Profil (engrenage) fonctionnait déjà ;
+  elle est conservée.
+
+## Overflow des cartes de stats (admin → Vue globale)
+Les 4 cartes affichaient « BOTTOM OVERFLOWED BY 11 PIXELS ».
+Cause : `childAspectRatio: 1.6` rendait les cartes trop courtes pour
+icône + chiffre + label. Corrigé (`1.35`, paddings et tailles ajustés,
+label en ellipsis).
+
+## Modération / validation des vidéos et statuts
+Vérifié en direct sur la base : les 2 posts en attente existent, la fonction
+`is_admin()` et la policy `posts_admin_all` autorisent bien l'admin à les
+lire ET à les modérer. La requête du tab Modération renvoie correctement les
+posts sous l'identité admin. **Le backend est fonctionnel.**
+
+Si le tab Modération apparaît vide, c'est que l'APK installé date d'un build
+antérieur : reconstruire avec cette version règle le problème. À la validation
+(« Publier »), `published_at` est renseigné pour que le contenu apparaisse
+aussitôt dans le feed.
