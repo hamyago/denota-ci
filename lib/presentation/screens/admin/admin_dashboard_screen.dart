@@ -324,7 +324,7 @@ class _ModerationTabState extends State<_ModerationTab> {
 
   // DIAG : capture la dernière erreur Flutter (build/layout/paint)
   static String? _lastFlutterError;
-  FlutterExceptionHandler? _previousOnError;
+  void Function(FlutterErrorDetails)? _previousOnError;
 
   @override
   void initState() {
