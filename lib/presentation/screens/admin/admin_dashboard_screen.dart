@@ -89,7 +89,36 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
   }
 
   Future<void> _toggleUserStatus(String userId, String currentStatus) async {
+    // Sécurité : l'admin ne peut pas se suspendre lui-même.
+    if (userId == supabase.auth.currentUser?.id) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Vous ne pouvez pas suspendre votre propre compte')),
+      );
+      return;
+    }
+
     final newStatus = currentStatus == 'active' ? 'suspended' : 'active';
+
+    // Confirmation avant de suspendre.
+    if (newStatus == 'suspended') {
+      final ok = await showDialog<bool>(
+        context: context,
+        builder: (c) => AlertDialog(
+          title: const Text('Suspendre ce compte ?'),
+          content: const Text("L'utilisateur n'aura plus accès à l'application jusqu'à réactivation."),
+          actions: [
+            TextButton(onPressed: () => Navigator.of(c).pop(false), child: const Text('Annuler')),
+            TextButton(
+              onPressed: () => Navigator.of(c).pop(true),
+              child: const Text('Suspendre', style: TextStyle(color: Colors.red)),
+            ),
+          ],
+        ),
+      );
+      if (ok != true) return;
+    }
+
+    if (!mounted) return;
     try {
       await supabase.from('profiles').update({'status': newStatus}).eq('id', userId);
       if (!mounted) return;
@@ -501,6 +530,7 @@ class _UsersTab extends StatelessWidget {
         final status = user['status'] as String? ?? 'pending';
         final isActive = status == 'active';
         final isPending = status == 'pending';
+        final isSelf = user['id'] == supabase.auth.currentUser?.id;
 
         // Couleur + libellé du badge de statut
         final Color statusColor;
@@ -588,6 +618,12 @@ class _UsersTab extends StatelessWidget {
                       onPressed: () => onReject(user['id'] as String),
                     ),
                   ],
+                )
+              else if (isSelf)
+                // Pas d'action de suspension sur son propre compte.
+                const Padding(
+                  padding: EdgeInsets.only(right: 8),
+                  child: Text('Vous', style: TextStyle(fontSize: 11, color: AppColors.grey400, fontStyle: FontStyle.italic)),
                 )
               else
                 IconButton(

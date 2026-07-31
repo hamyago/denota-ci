@@ -207,3 +207,58 @@ Pour exiger aussi la validation des athlètes : ajouter `'athlete'` au tableau
 ## Distinction importante
 - **Onglet Modération** = valide les *contenus* (vidéos, statuts, articles).
 - **Onglet Utilisateurs** = valide/gère les *comptes* (personnes).
+
+---
+
+# Migration 009 — Correction critique modération + Security Advisor
+
+## LE bug de la modération (enfin trouvé)
+`is_admin()` faisait `SELECT ... FROM profiles` sans qualifier le schéma, et
+n'avait pas de `search_path` fixe. Dans certains contextes d'appel de l'API
+(search_path vide), `profiles` n'était pas résolu → **is_admin() plantait** →
+la policy `posts_admin_all` ne s'appliquait pas → l'admin ne voyait AUCUN post
+en attente. Le compteur « En attente : 2 » passait par un autre chemin, d'où la
+contradiction (2 annoncés mais liste vide).
+
+**Correctif** : `search_path = public` fixé sur toutes les fonctions applicatives.
+Vérifié : `is_admin()` renvoie désormais `true` et la requête de modération
+renvoie bien les 2 posts, même avec un search_path vide.
+
+## Security Advisor — alertes traitées
+- **60 warnings « Function Search Path Mutable »** → réglés par le même
+  `ALTER FUNCTION ... SET search_path = public`.
+- **Erreur « Security Definer View » (athletes_search)** → `security_invoker = true`
+  (la vue respecte maintenant la RLS de l'appelant, dont le masquage des mineurs).
+- **5 info « RLS Enabled No Policy »** → policies ajoutées :
+  cities / countries / institutions (lecture publique), athlete_institutions et
+  recruiter_profiles (lecture publique + écriture par le propriétaire).
+- **spatial_ref_sys** (table système PostGIS) : laissée telle quelle
+  volontairement (activer la RLS casserait les requêtes spatiales ; aucune
+  donnée sensible).
+
+Toutes ces corrections sont **déjà appliquées** sur denota-ci et consignées
+dans `009_security_hardening.sql`.
+
+---
+
+# Correctif — Suspension accidentelle de comptes + alertes restantes
+
+## Comptes suspendus par erreur (réactivés)
+Les comptes admin et athlète s'étaient retrouvés en `suspended` (bouton de
+l'onglet Utilisateurs cliqué par mégarde — il bascule active⇄suspended). Les
+deux ont été **réactivés** en base. Protections ajoutées :
+- L'admin **ne peut plus se suspendre lui-même** (blocage + badge « Vous » à la
+  place du bouton sur sa propre ligne).
+- **Confirmation obligatoire** avant de suspendre un compte.
+
+## Security Advisor — alertes restantes
+- **Public Can Execute SECURITY DEFINER** (admin_approve_user/reject) : c'est moi
+  qui l'avais introduite. Corrigé : `REVOKE EXECUTE ... FROM PUBLIC, anon`,
+  accès réservé à `authenticated` (ajouté à la migration 009).
+- **RLS Disabled — spatial_ref_sys** : table système PostGIS, laissée telle
+  quelle volontairement (aucune donnée sensible ; activer la RLS casse le géo).
+- **Extension in Public** (postgis, pg_trgm) : installées dans `public` par
+  défaut par Supabase. Les déplacer est risqué et non nécessaire → à ignorer.
+- **Public Bucket Allows Listing** (avatars, videos) : ces buckets sont publics
+  volontairement (les avatars et vidéos ont besoin d'URL publiques). Comportement
+  attendu pour l'app, pas un défaut.
