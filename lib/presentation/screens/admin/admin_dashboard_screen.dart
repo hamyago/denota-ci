@@ -318,65 +318,50 @@ class _ModerationTab extends StatefulWidget {
 }
 
 class _ModerationTabState extends State<_ModerationTab> {
-  List<Map<String, dynamic>> _posts = [];
-  bool _loading = true;
+  late List<Map<String, dynamic>> _posts;
+  bool _refreshing = false;
   String? _error;
-
-  // DIAG : capture la dernière erreur Flutter (build/layout/paint)
-  static String? _lastFlutterError;
-  void Function(FlutterErrorDetails)? _previousOnError;
 
   @override
   void initState() {
     super.initState();
-    // DIAG : intercepte toute erreur du framework et l'affiche dans le bandeau.
-    _previousOnError = FlutterError.onError;
-    FlutterError.onError = (details) {
-      final stack = details.stack?.toString() ?? '';
-      // On isole les lignes de la stack qui pointent vers notre code applicatif.
-      final appLines = stack
-          .split('\n')
-          .where((l) => l.contains('admin_dashboard') || l.contains('package:denota'))
-          .take(4)
-          .join('\n');
-      _lastFlutterError =
-          '${details.exceptionAsString()}\n$appLines';
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) setState(() {});
-      });
-      _previousOnError?.call(details);
-    };
-    // On part des posts fournis par le parent, mais on recharge aussi
-    // directement (indépendant du timing de _loadAll).
-    _posts = widget.posts;
-    _load();
+    // Les posts sont déjà chargés par le parent (_loadAll). On les utilise
+    // directement : pas de requête bloquante au démarrage.
+    _posts = List<Map<String, dynamic>>.from(widget.posts);
   }
 
   @override
-  void dispose() {
-    FlutterError.onError = _previousOnError;
-    super.dispose();
+  void didUpdateWidget(covariant _ModerationTab oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // Quand le parent recharge, on resynchronise la liste locale.
+    if (oldWidget.posts != widget.posts) {
+      _posts = List<Map<String, dynamic>>.from(widget.posts);
+    }
   }
 
+  // Rechargement manuel (pull-to-refresh) — protégé par un timeout pour ne
+  // jamais rester bloqué, et repli sur la liste existante en cas d'échec.
   Future<void> _load() async {
-    setState(() { _loading = true; _error = null; });
+    setState(() { _refreshing = true; _error = null; });
     try {
       final data = await supabase
           .from('posts')
           .select('id, title, content_type, status, created_at, author_id')
           .eq('status', 'pending_moderation')
           .order('created_at', ascending: false)
-          .limit(50);
+          .limit(50)
+          .timeout(const Duration(seconds: 10));
       if (!mounted) return;
       setState(() {
         _posts = List<Map<String, dynamic>>.from(data as List);
-        _loading = false;
+        _refreshing = false;
       });
     } catch (e) {
       if (!mounted) return;
+      // On garde les posts déjà affichés, on signale juste l'échec du refresh.
       setState(() {
         _error = e.toString();
-        _loading = false;
+        _refreshing = false;
       });
     }
   }
@@ -389,59 +374,16 @@ class _ModerationTabState extends State<_ModerationTab> {
     }
   }
 
-  // ── DIAGNOSTIC (à retirer une fois le bug résolu) ─────────
-  Widget _diagBanner() {
-    return Container(
-      width: double.infinity,
-      color: Colors.black,
-      padding: const EdgeInsets.all(8),
-      child: Text(
-        'DIAG build=diag3 | loading=$_loading | error=${_error ?? "aucune"} | posts=${_posts.length}\n'
-        'FlutterError: ${_lastFlutterError ?? "aucune"}',
-        style: const TextStyle(color: Colors.yellow, fontSize: 10, fontFamily: 'monospace'),
-      ),
-    );
-  }
-
-  Widget _withDiag(Widget child) {
-    return Column(
-      children: [
-        _diagBanner(),
-        Expanded(child: child),
-      ],
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
-    if (_loading) {
-      return _withDiag(const Center(child: CircularProgressIndicator()));
-    }
-    if (_error != null) {
-      return _withDiag(Center(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Icon(Icons.error_outline, size: 48, color: Colors.red),
-              const SizedBox(height: 12),
-              Text('Erreur de chargement :\n$_error', textAlign: TextAlign.center,
-                  style: const TextStyle(fontSize: 13, color: AppColors.grey600)),
-              const SizedBox(height: 16),
-              FilledButton(onPressed: _load, child: const Text('Réessayer')),
-            ],
-          ),
-        ),
-      ));
-    }
     if (_posts.isEmpty) {
-      return _withDiag(RefreshIndicator(
+      return RefreshIndicator(
         onRefresh: _load,
         child: ListView(
-          children: const [
-            SizedBox(height: 120),
-            Center(
+          children: [
+            if (_refreshing) const LinearProgressIndicator(),
+            const SizedBox(height: 120),
+            const Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
@@ -455,31 +397,47 @@ class _ModerationTabState extends State<_ModerationTab> {
             ),
           ],
         ),
-      ));
+      );
     }
 
-    return _withDiag(RefreshIndicator(
+    return RefreshIndicator(
       onRefresh: _load,
-      child: ListView.separated(
-        padding: const EdgeInsets.all(16),
-        itemCount: _posts.length + 1, // DIAG : +1 pour l'item témoin
-        separatorBuilder: (_, __) => const SizedBox(height: 8),
-        itemBuilder: (context, index) {
-          // DIAG : item témoin ultra-simple en position 0.
-          if (index == 0) {
-            return Container(
-              height: 60,
-              color: Colors.red,
-              alignment: Alignment.center,
-              child: const Text(
-                'TEMOIN DIAG2 — si tu vois ce bloc rouge, la liste fonctionne',
-                style: TextStyle(color: Colors.white, fontSize: 12),
-                textAlign: TextAlign.center,
-              ),
-            );
-          }
-          final i = index - 1; // DIAG : décalage pour les vrais posts
-          final post = _posts[i];
+      child: Column(
+        children: [
+          if (_refreshing) const LinearProgressIndicator(),
+          if (_error != null)
+            Container(
+              width: double.infinity,
+              color: Colors.orange.shade50,
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              child: Text('Échec du rafraîchissement (liste ci-dessous conservée).',
+                  style: TextStyle(fontSize: 11, color: Colors.orange.shade900)),
+            ),
+          Expanded(
+            child: ListView.separated(
+              padding: const EdgeInsets.all(16),
+              itemCount: _posts.length,
+              separatorBuilder: (_, __) => const SizedBox(height: 8),
+              itemBuilder: (context, i) {
+                try {
+                  return _buildPostCard(_posts[i]);
+                } catch (e) {
+                  return Container(
+                    padding: const EdgeInsets.all(12),
+                    color: Colors.red.shade50,
+                    child: Text('Carte #$i illisible : $e',
+                        style: const TextStyle(fontSize: 11, color: Colors.red)),
+                  );
+                }
+              },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPostCard(Map<String, dynamic> post) {
           final type = post['content_type'] as String? ?? 'video';
           final title = post['title'] as String? ?? 'Sans titre';
           final createdAt = post['created_at'] as String? ?? '';
@@ -532,9 +490,6 @@ class _ModerationTabState extends State<_ModerationTab> {
               ],
             ),
           );
-        },
-      ),
-    ));
   }
 }
 
