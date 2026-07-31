@@ -67,10 +67,27 @@ CREATE POLICY "recruiter_prof_owner_write" ON public.recruiter_profiles
 -- quelle. Activer la RLS dessus peut casser les requêtes spatiales ; elle ne
 -- contient que des données de référence de projections, sans info sensible.
 
--- ── 4. Restreindre l'exécution des fonctions admin ──
--- Par défaut, une fonction est exécutable par PUBLIC (dont anon). Même si
--- admin_approve_user/reject vérifient is_admin(), on retire l'accès public.
-REVOKE EXECUTE ON FUNCTION public.admin_approve_user(uuid) FROM PUBLIC, anon;
-REVOKE EXECUTE ON FUNCTION public.admin_reject_user(uuid)  FROM PUBLIC, anon;
-GRANT  EXECUTE ON FUNCTION public.admin_approve_user(uuid) TO authenticated;
-GRANT  EXECUTE ON FUNCTION public.admin_reject_user(uuid)  TO authenticated;
+-- ── 4. Restreindre l'exécution des fonctions SECURITY DEFINER ──
+-- Par défaut une fonction est exécutable par PUBLIC (dont anon). On retire cet
+-- accès pour toutes les fonctions applicatives NON utilisées dans la RLS, et on
+-- le redonne explicitement à authenticated (app) + service_role.
+-- On GARDE is_admin/is_expert/is_premium_athlete/is_recruiter_pro exécutables
+-- car elles sont appelées PAR la RLS (les restreindre casserait le contrôle
+-- d'accès).
+DO $$
+DECLARE fn TEXT;
+DECLARE fns TEXT[] := ARRAY[
+  'admin_approve_user(uuid)','admin_reject_user(uuid)',
+  'calculate_profile_score(uuid)','calculate_talent_score(uuid)',
+  'increment_post_views(uuid)','increment_profile_views(uuid)',
+  'decrement_on_unlike()','notify_on_like()','notify_on_contact_request()',
+  'handle_new_user()','trigger_recalculate_talent_score()',
+  'update_updated_at()','update_conversation_last_message()',
+  'generate_unique_username(text)'
+];
+BEGIN
+  FOREACH fn IN ARRAY fns LOOP
+    EXECUTE format('REVOKE EXECUTE ON FUNCTION public.%s FROM PUBLIC, anon', fn);
+    EXECUTE format('GRANT EXECUTE ON FUNCTION public.%s TO authenticated, service_role', fn);
+  END LOOP;
+END $$;
