@@ -332,7 +332,15 @@ class _ModerationTabState extends State<_ModerationTab> {
     // DIAG : intercepte toute erreur du framework et l'affiche dans le bandeau.
     _previousOnError = FlutterError.onError;
     FlutterError.onError = (details) {
-      _lastFlutterError = details.exceptionAsString();
+      final stack = details.stack?.toString() ?? '';
+      // On isole les lignes de la stack qui pointent vers notre code applicatif.
+      final appLines = stack
+          .split('\n')
+          .where((l) => l.contains('admin_dashboard') || l.contains('package:denota'))
+          .take(4)
+          .join('\n');
+      _lastFlutterError =
+          '${details.exceptionAsString()}\n$appLines';
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) setState(() {});
       });
@@ -388,9 +396,9 @@ class _ModerationTabState extends State<_ModerationTab> {
       color: Colors.black,
       padding: const EdgeInsets.all(8),
       child: Text(
-        'DIAG build=diag2 | loading=$_loading | error=${_error ?? "aucune"} | posts=${_posts.length}\n'
+        'DIAG build=diag3 | loading=$_loading | error=${_error ?? "aucune"} | posts=${_posts.length}\n'
         'FlutterError: ${_lastFlutterError ?? "aucune"}',
-        style: const TextStyle(color: Colors.yellow, fontSize: 11, fontFamily: 'monospace'),
+        style: const TextStyle(color: Colors.yellow, fontSize: 10, fontFamily: 'monospace'),
       ),
     );
   }
