@@ -362,13 +362,35 @@ class _ModerationTabState extends State<_ModerationTab> {
     }
   }
 
+  // ── DIAGNOSTIC (à retirer une fois le bug résolu) ─────────
+  Widget _diagBanner() {
+    return Container(
+      width: double.infinity,
+      color: Colors.black,
+      padding: const EdgeInsets.all(8),
+      child: Text(
+        'DIAG build=diag1 | loading=$_loading | error=${_error ?? "aucune"} | posts=${_posts.length}',
+        style: const TextStyle(color: Colors.yellow, fontSize: 12, fontFamily: 'monospace'),
+      ),
+    );
+  }
+
+  Widget _withDiag(Widget child) {
+    return Column(
+      children: [
+        _diagBanner(),
+        Expanded(child: child),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     if (_loading) {
-      return const Center(child: CircularProgressIndicator());
+      return _withDiag(const Center(child: CircularProgressIndicator()));
     }
     if (_error != null) {
-      return Center(
+      return _withDiag(Center(
         child: Padding(
           padding: const EdgeInsets.all(24),
           child: Column(
@@ -383,10 +405,10 @@ class _ModerationTabState extends State<_ModerationTab> {
             ],
           ),
         ),
-      );
+      ));
     }
     if (_posts.isEmpty) {
-      return RefreshIndicator(
+      return _withDiag(RefreshIndicator(
         onRefresh: _load,
         child: ListView(
           children: const [
@@ -405,10 +427,10 @@ class _ModerationTabState extends State<_ModerationTab> {
             ),
           ],
         ),
-      );
+      ));
     }
 
-    return RefreshIndicator(
+    return _withDiag(RefreshIndicator(
       onRefresh: _load,
       child: ListView.separated(
         padding: const EdgeInsets.all(16),
@@ -470,7 +492,7 @@ class _ModerationTabState extends State<_ModerationTab> {
           );
         },
       ),
-    );
+    ));
   }
 }
 
