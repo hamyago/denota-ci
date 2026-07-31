@@ -322,13 +322,32 @@ class _ModerationTabState extends State<_ModerationTab> {
   bool _loading = true;
   String? _error;
 
+  // DIAG : capture la dernière erreur Flutter (build/layout/paint)
+  static String? _lastFlutterError;
+  FlutterExceptionHandler? _previousOnError;
+
   @override
   void initState() {
     super.initState();
+    // DIAG : intercepte toute erreur du framework et l'affiche dans le bandeau.
+    _previousOnError = FlutterError.onError;
+    FlutterError.onError = (details) {
+      _lastFlutterError = details.exceptionAsString();
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) setState(() {});
+      });
+      _previousOnError?.call(details);
+    };
     // On part des posts fournis par le parent, mais on recharge aussi
     // directement (indépendant du timing de _loadAll).
     _posts = widget.posts;
     _load();
+  }
+
+  @override
+  void dispose() {
+    FlutterError.onError = _previousOnError;
+    super.dispose();
   }
 
   Future<void> _load() async {
@@ -369,8 +388,9 @@ class _ModerationTabState extends State<_ModerationTab> {
       color: Colors.black,
       padding: const EdgeInsets.all(8),
       child: Text(
-        'DIAG build=diag1 | loading=$_loading | error=${_error ?? "aucune"} | posts=${_posts.length}',
-        style: const TextStyle(color: Colors.yellow, fontSize: 12, fontFamily: 'monospace'),
+        'DIAG build=diag2 | loading=$_loading | error=${_error ?? "aucune"} | posts=${_posts.length}\n'
+        'FlutterError: ${_lastFlutterError ?? "aucune"}',
+        style: const TextStyle(color: Colors.yellow, fontSize: 11, fontFamily: 'monospace'),
       ),
     );
   }
@@ -434,9 +454,23 @@ class _ModerationTabState extends State<_ModerationTab> {
       onRefresh: _load,
       child: ListView.separated(
         padding: const EdgeInsets.all(16),
-        itemCount: _posts.length,
+        itemCount: _posts.length + 1, // DIAG : +1 pour l'item témoin
         separatorBuilder: (_, __) => const SizedBox(height: 8),
-        itemBuilder: (context, i) {
+        itemBuilder: (context, index) {
+          // DIAG : item témoin ultra-simple en position 0.
+          if (index == 0) {
+            return Container(
+              height: 60,
+              color: Colors.red,
+              alignment: Alignment.center,
+              child: const Text(
+                'TEMOIN DIAG2 — si tu vois ce bloc rouge, la liste fonctionne',
+                style: TextStyle(color: Colors.white, fontSize: 12),
+                textAlign: TextAlign.center,
+              ),
+            );
+          }
+          final i = index - 1; // DIAG : décalage pour les vrais posts
           final post = _posts[i];
           final type = post['content_type'] as String? ?? 'video';
           final title = post['title'] as String? ?? 'Sans titre';
