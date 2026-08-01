@@ -344,16 +344,21 @@ class _ModerationTabState extends State<_ModerationTab> {
   Future<void> _load() async {
     setState(() { _refreshing = true; _error = null; });
     try {
-      final data = await supabase
-          .from('posts')
-          .select('id, title, content_type, status, created_at, author_id')
-          .eq('status', 'pending_moderation')
-          .order('created_at', ascending: false)
-          .limit(50)
-          .timeout(const Duration(seconds: 10));
+      // Fonction locale -> vraie Future, sur laquelle .timeout() est garanti.
+      Future<List<dynamic>> fetch() async {
+        final data = await supabase
+            .from('posts')
+            .select('id, title, content_type, status, created_at, author_id')
+            .eq('status', 'pending_moderation')
+            .order('created_at', ascending: false)
+            .limit(50);
+        return data as List;
+      }
+
+      final data = await fetch().timeout(const Duration(seconds: 10));
       if (!mounted) return;
       setState(() {
-        _posts = List<Map<String, dynamic>>.from(data as List);
+        _posts = List<Map<String, dynamic>>.from(data);
         _refreshing = false;
       });
     } catch (e) {
@@ -376,14 +381,50 @@ class _ModerationTabState extends State<_ModerationTab> {
 
   @override
   Widget build(BuildContext context) {
+    return Column(
+      children: [
+        // En-tête toujours visible : sert aussi de repère de version.
+        Container(
+          width: double.infinity,
+          color: AppColors.primaryBg,
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+          child: Row(
+            children: [
+              const Icon(Icons.pending_actions, size: 18, color: AppColors.primary),
+              const SizedBox(width: 8),
+              Text('${_posts.length} post(s) en attente',
+                  style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: AppColors.primary)),
+              const Spacer(),
+              IconButton(
+                icon: const Icon(Icons.refresh, size: 20, color: AppColors.primary),
+                onPressed: _refreshing ? null : _load,
+                tooltip: 'Rafraîchir',
+              ),
+            ],
+          ),
+        ),
+        if (_refreshing) const LinearProgressIndicator(),
+        if (_error != null)
+          Container(
+            width: double.infinity,
+            color: Colors.orange.shade50,
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            child: Text('Échec du rafraîchissement (liste ci-dessous conservée).',
+                style: TextStyle(fontSize: 11, color: Colors.orange.shade900)),
+          ),
+        Expanded(child: _buildBody()),
+      ],
+    );
+  }
+
+  Widget _buildBody() {
     if (_posts.isEmpty) {
       return RefreshIndicator(
         onRefresh: _load,
         child: ListView(
-          children: [
-            if (_refreshing) const LinearProgressIndicator(),
-            const SizedBox(height: 120),
-            const Center(
+          children: const [
+            SizedBox(height: 120),
+            Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
@@ -402,37 +443,22 @@ class _ModerationTabState extends State<_ModerationTab> {
 
     return RefreshIndicator(
       onRefresh: _load,
-      child: Column(
-        children: [
-          if (_refreshing) const LinearProgressIndicator(),
-          if (_error != null)
-            Container(
-              width: double.infinity,
-              color: Colors.orange.shade50,
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-              child: Text('Échec du rafraîchissement (liste ci-dessous conservée).',
-                  style: TextStyle(fontSize: 11, color: Colors.orange.shade900)),
-            ),
-          Expanded(
-            child: ListView.separated(
-              padding: const EdgeInsets.all(16),
-              itemCount: _posts.length,
-              separatorBuilder: (_, __) => const SizedBox(height: 8),
-              itemBuilder: (context, i) {
-                try {
-                  return _buildPostCard(_posts[i]);
-                } catch (e) {
-                  return Container(
-                    padding: const EdgeInsets.all(12),
-                    color: Colors.red.shade50,
-                    child: Text('Carte #$i illisible : $e',
-                        style: const TextStyle(fontSize: 11, color: Colors.red)),
-                  );
-                }
-              },
-            ),
-          ),
-        ],
+      child: ListView.separated(
+        padding: const EdgeInsets.all(16),
+        itemCount: _posts.length,
+        separatorBuilder: (_, __) => const SizedBox(height: 8),
+        itemBuilder: (context, i) {
+          try {
+            return _buildPostCard(_posts[i]);
+          } catch (e) {
+            return Container(
+              padding: const EdgeInsets.all(12),
+              color: Colors.red.shade50,
+              child: Text('Carte #$i illisible : $e',
+                  style: const TextStyle(fontSize: 11, color: Colors.red)),
+            );
+          }
+        },
       ),
     );
   }
