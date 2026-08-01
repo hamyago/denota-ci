@@ -441,24 +441,35 @@ class _ModerationTabState extends State<_ModerationTab> {
       );
     }
 
+    // Construction sans ListView paresseux : chaque carte est bâtie tout de
+    // suite dans une Column, ce qui fait remonter toute erreur ici (attrapée
+    // par le try/catch par carte) au lieu d'un échec de layout silencieux.
+    final List<Widget> children = [];
+    for (var i = 0; i < _posts.length; i++) {
+      Widget card;
+      try {
+        card = _buildPostCard(_posts[i]);
+      } catch (e) {
+        card = Container(
+          padding: const EdgeInsets.all(12),
+          color: Colors.red.shade50,
+          child: Text('Carte #$i illisible : $e',
+              style: const TextStyle(fontSize: 11, color: Colors.red)),
+        );
+      }
+      children.add(card);
+      children.add(const SizedBox(height: 8));
+    }
+
     return RefreshIndicator(
       onRefresh: _load,
-      child: ListView.separated(
+      child: SingleChildScrollView(
+        physics: const AlwaysScrollableScrollPhysics(),
         padding: const EdgeInsets.all(16),
-        itemCount: _posts.length,
-        separatorBuilder: (_, __) => const SizedBox(height: 8),
-        itemBuilder: (context, i) {
-          try {
-            return _buildPostCard(_posts[i]);
-          } catch (e) {
-            return Container(
-              padding: const EdgeInsets.all(12),
-              color: Colors.red.shade50,
-              child: Text('Carte #$i illisible : $e',
-                  style: const TextStyle(fontSize: 11, color: Colors.red)),
-            );
-          }
-        },
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: children,
+        ),
       ),
     );
   }
@@ -495,18 +506,19 @@ class _ModerationTabState extends State<_ModerationTab> {
                 const SizedBox(height: 4),
                 Text('Type: $type  •  $createdAt', style: const TextStyle(fontSize: 11, color: AppColors.grey400)),
                 const SizedBox(height: 12),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
+                Wrap(
+                  alignment: WrapAlignment.end,
+                  spacing: 8,
+                  runSpacing: 8,
                   children: [
                     OutlinedButton.icon(
-                      onPressed: () => _moderate(post['id'] as String, 'rejected'),
+                      onPressed: () => _moderate((post['id'] ?? '').toString(), 'rejected'),
                       icon: const Icon(Icons.close, size: 16),
                       label: const Text('Rejeter'),
                       style: OutlinedButton.styleFrom(foregroundColor: Colors.red, side: const BorderSide(color: Colors.red)),
                     ),
-                    const SizedBox(width: 8),
                     FilledButton.icon(
-                      onPressed: () => _moderate(post['id'] as String, 'published'),
+                      onPressed: () => _moderate((post['id'] ?? '').toString(), 'published'),
                       icon: const Icon(Icons.check, size: 16),
                       label: const Text('Publier'),
                       style: FilledButton.styleFrom(backgroundColor: AppColors.primary),
