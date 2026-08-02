@@ -110,6 +110,18 @@ class _VideoPostTabState extends State<_VideoPostTab> {
     final result = await widget.videoService.pickVideo(source: source);
     if (result == null || !mounted) return;
 
+    // ── Contrôle de durée (max 1 min 30) ────────────────
+    if (result.tooLong) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Vidéo trop longue : 1 min 30 maximum. Choisissez une vidéo plus courte ou coupez-la.'),
+          backgroundColor: AppColors.error,
+          duration: Duration(seconds: 4),
+        ),
+      );
+      return;
+    }
+
     // Init lecteur vidéo
     final ctrl = VideoPlayerController.file(result.file);
     await ctrl.initialize();

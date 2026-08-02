@@ -33,6 +33,7 @@ dependencies:
   video_player: ^2.9.2
   chewie: ^1.10.0
   image_picker: ^1.1.2
+  video_thumbnail: ^0.5.3
 
   # ── Storage local ─────────────────────────
   shared_preferences: ^2.5.0

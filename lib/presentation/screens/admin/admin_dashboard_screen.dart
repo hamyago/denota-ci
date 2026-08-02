@@ -1,8 +1,10 @@
 // lib/presentation/screens/admin/admin_dashboard_screen.dart
 import 'package:flutter/material.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import '../../../main.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../widgets/common/logout_action.dart';
+import '../../widgets/video/video_player_widget.dart';
 
 class AdminDashboardScreen extends StatefulWidget {
   const AdminDashboardScreen({super.key});
@@ -43,7 +45,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
       // Posts en attente de modération
       final pending = await supabase
           .from('posts')
-          .select('id, title, content_type, status, created_at, author_id')
+          .select('id, title, content_type, status, created_at, author_id, media_urls, thumbnail_url')
           .eq('status', 'pending_moderation')
           .order('created_at', ascending: false)
           .limit(20);
@@ -348,7 +350,7 @@ class _ModerationTabState extends State<_ModerationTab> {
       Future<List<dynamic>> fetch() async {
         final data = await supabase
             .from('posts')
-            .select('id, title, content_type, status, created_at, author_id')
+            .select('id, title, content_type, status, created_at, author_id, media_urls, thumbnail_url')
             .eq('status', 'pending_moderation')
             .order('created_at', ascending: false)
             .limit(50);
@@ -474,6 +476,51 @@ class _ModerationTabState extends State<_ModerationTab> {
     );
   }
 
+  // Aperçu du média pour permettre à l'admin de VOIR le contenu avant
+  // de le publier ou le rejeter. Vidéo -> lecteur (tap pour lire) ;
+  // image/status -> photo ; sinon -> rien.
+  Widget _buildPreview(Map<String, dynamic> post, String type) {
+    final rawMedia = post['media_urls'];
+    final List<String> media = rawMedia is List
+        ? rawMedia.map((e) => e.toString()).toList()
+        : const [];
+    final thumb = post['thumbnail_url'] as String?;
+
+    if (media.isEmpty) return const SizedBox.shrink();
+    final url = media.first;
+
+    if (type == 'video') {
+      return ClipRRect(
+        borderRadius: BorderRadius.circular(10),
+        child: AspectRatio(
+          aspectRatio: 16 / 9,
+          child: VideoPlayerWidget(videoUrl: url, thumbnailUrl: thumb),
+        ),
+      );
+    }
+
+    // Image / status
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(10),
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxHeight: 320),
+        child: CachedNetworkImage(
+          imageUrl: url,
+          width: double.infinity,
+          fit: BoxFit.cover,
+          placeholder: (_, __) => Container(
+            height: 180, color: AppColors.grey200,
+            child: const Center(child: CircularProgressIndicator(strokeWidth: 2)),
+          ),
+          errorWidget: (_, __, ___) => Container(
+            height: 180, color: AppColors.grey200,
+            child: const Center(child: Icon(Icons.broken_image, color: AppColors.grey400)),
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _buildPostCard(Map<String, dynamic> post) {
           final type = post['content_type'] as String? ?? 'video';
           final title = post['title'] as String? ?? 'Sans titre';
@@ -505,6 +552,8 @@ class _ModerationTabState extends State<_ModerationTab> {
                 ),
                 const SizedBox(height: 4),
                 Text('Type: $type  •  $createdAt', style: const TextStyle(fontSize: 11, color: AppColors.grey400)),
+                const SizedBox(height: 12),
+                _buildPreview(post, type),
                 const SizedBox(height: 12),
                 Wrap(
                   alignment: WrapAlignment.end,

@@ -8,6 +8,12 @@ import 'dart:io';
 import 'package:image_picker/image_picker.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:uuid/uuid.dart';
+import 'package:video_player/video_player.dart';
+import 'package:video_thumbnail/video_thumbnail.dart';
+import 'package:path_provider/path_provider.dart';
+
+/// Durée maximale autorisée pour une vidéo (1 min 30).
+const int kMaxVideoSeconds = 90;
 
 /// Convertit une extension de fichier en type MIME accepté par les
 /// buckets Supabase. Les buckets refusent 'video/mov' ou 'image/jpg' :
@@ -64,6 +70,10 @@ class VideoPickResult {
   }
 
   double get fileSizeMb => fileSizeBytes / (1024 * 1024);
+
+  /// Vrai si la vidéo dépasse la durée maximale autorisée.
+  bool get tooLong =>
+      durationMs != null && durationMs! > kMaxVideoSeconds * 1000;
 }
 
 class UploadProgress {
@@ -88,7 +98,7 @@ class VideoService {
   // ── Sélection depuis galerie ou caméra ─────────────────
   Future<VideoPickResult?> pickVideo({
     required ImageSource source,
-    Duration maxDuration = const Duration(minutes: 5),
+    Duration maxDuration = const Duration(seconds: kMaxVideoSeconds),
   }) async {
     final xfile = await _picker.pickVideo(
       source: source,
@@ -99,10 +109,44 @@ class VideoService {
     final file = File(xfile.path);
     final stat = await file.stat();
 
+    // ── Durée réelle ────────────────────────────────────
+    // image_picker n'impose maxDuration qu'à la caméra ; pour la galerie
+    // on lit la durée nous-mêmes via video_player (déjà présent).
+    int? durationMs;
+    final probe = VideoPlayerController.file(file);
+    try {
+      await probe.initialize();
+      durationMs = probe.value.duration.inMilliseconds;
+    } catch (_) {
+      // durée inconnue : on laisse null, la validation UI gérera au mieux.
+    } finally {
+      await probe.dispose();
+    }
+
+    // ── Miniature (non bloquante) ───────────────────────
+    // Génère un JPEG à partir de la vidéo. En cas d'échec, on continue
+    // sans miniature (thumbnail restera null).
+    File? thumb;
+    try {
+      final dir = await getTemporaryDirectory();
+      final path = await VideoThumbnail.thumbnailFile(
+        video: file.path,
+        thumbnailPath: dir.path,
+        imageFormat: ImageFormat.JPEG,
+        maxWidth: 720,
+        quality: 75,
+      );
+      if (path != null && await File(path).exists()) {
+        thumb = File(path);
+      }
+    } catch (_) {
+      thumb = null;
+    }
+
     return VideoPickResult(
       file: file,
-      thumbnail: null, // thumbnail via video_compress retiré
-      durationMs: null,
+      thumbnail: thumb,
+      durationMs: durationMs,
       fileSizeBytes: stat.size,
     );
   }
