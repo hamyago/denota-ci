@@ -22,6 +22,9 @@ class ProfileModel {
   final bool isSearchable;
   final int profileViews;
   final int profileScore;
+  final int recruiterViewCount;
+  final int currentStreak;
+  final int longestStreak;
   final DateTime createdAt;
 
   const ProfileModel({
@@ -46,6 +49,9 @@ class ProfileModel {
     this.isSearchable = true,
     this.profileViews = 0,
     this.profileScore = 0,
+    this.recruiterViewCount = 0,
+    this.currentStreak = 0,
+    this.longestStreak = 0,
     required this.createdAt,
   });
 
@@ -73,6 +79,9 @@ class ProfileModel {
     isSearchable:     json['is_searchable'] as bool? ?? true,
     profileViews:     json['profile_views'] as int? ?? 0,
     profileScore:     json['profile_score'] as int? ?? 0,
+    recruiterViewCount: json['recruiter_view_count'] as int? ?? 0,
+    currentStreak:    json['current_streak'] as int? ?? 0,
+    longestStreak:    json['longest_streak'] as int? ?? 0,
     createdAt:        DateTime.tryParse(json['created_at'] as String? ?? '') ?? DateTime.now(),
   );
 

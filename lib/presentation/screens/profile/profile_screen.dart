@@ -538,6 +538,32 @@ class _ProfileHeader extends StatelessWidget {
 
                 const SizedBox(height: 14),
 
+                // Badges : streak d'entraînement + vues recruteurs
+                if (profile.currentStreak > 0 || profile.recruiterViewCount > 0)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 14),
+                    child: Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: [
+                        if (profile.currentStreak > 0)
+                          _MiniBadge(
+                            icon: Icons.local_fire_department,
+                            iconColor: AppColors.accentDark,
+                            bg: AppColors.accentLight,
+                            text: '${profile.currentStreak} j. d\'affilée',
+                          ),
+                        if (profile.recruiterViewCount > 0)
+                          _MiniBadge(
+                            icon: Icons.visibility,
+                            iconColor: AppColors.primary,
+                            bg: AppColors.primaryBg,
+                            text: 'Vu par ${profile.recruiterViewCount} recruteur${profile.recruiterViewCount > 1 ? 's' : ''}',
+                          ),
+                      ],
+                    ),
+                  ),
+
                 // Boutons action
                 if (isOwn)
                   Row(children: [
@@ -1274,3 +1300,33 @@ class _StatCount extends StatelessWidget {
     );
   }
 }
+
+class _MiniBadge extends StatelessWidget {
+  final IconData icon;
+  final Color iconColor;
+  final Color bg;
+  final String text;
+  const _MiniBadge({
+    required this.icon,
+    required this.iconColor,
+    required this.bg,
+    required this.text,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(20)),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 15, color: iconColor),
+          const SizedBox(width: 5),
+          Text(text, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: iconColor)),
+        ],
+      ),
+    );
+  }
+}
+

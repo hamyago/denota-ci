@@ -23,7 +23,9 @@ class TikTokFeedScreen extends StatefulWidget {
 class _TikTokFeedScreenState extends State<TikTokFeedScreen> {
   final PageController _pageCtrl = PageController();
   final List<Map<String, dynamic>> _posts = [];
+  final List<Map<String, dynamic>> _sports = [];
   final Set<String> _likedIds = {};
+  int? _sportFilter; // null = Tous
   bool _loading = true;
   String? _error;
   int _current = 0;
@@ -31,6 +33,31 @@ class _TikTokFeedScreenState extends State<TikTokFeedScreen> {
   @override
   void initState() {
     super.initState();
+    _loadSports();
+    _load();
+  }
+
+  Future<void> _loadSports() async {
+    try {
+      final data = await supabase
+          .from('sports')
+          .select('id, name_fr')
+          .order('name_fr');
+      if (!mounted) return;
+      setState(() {
+        _sports
+          ..clear()
+          ..addAll(List<Map<String, dynamic>>.from(data as List));
+      });
+    } catch (_) {
+      // pas de filtre si la liste échoue : on garde "Tous"
+    }
+  }
+
+  void _selectSport(int? sportId) {
+    if (_sportFilter == sportId) return;
+    setState(() { _sportFilter = sportId; _current = 0; });
+    if (_pageCtrl.hasClients) _pageCtrl.jumpToPage(0);
     _load();
   }
 
@@ -43,7 +70,7 @@ class _TikTokFeedScreenState extends State<TikTokFeedScreen> {
   Future<void> _load() async {
     setState(() { _loading = true; _error = null; });
     try {
-      final rows = await supabase
+      var query = supabase
           .from('posts')
           .select('''
             *,
@@ -55,7 +82,13 @@ class _TikTokFeedScreenState extends State<TikTokFeedScreen> {
               )
             )
           ''')
-          .eq('status', 'published')
+          .eq('status', 'published');
+
+      if (_sportFilter != null) {
+        query = query.eq('sport_id', _sportFilter!);
+      }
+
+      final rows = await query
           .order('published_at', ascending: false)
           .limit(30);
 
@@ -201,7 +234,60 @@ class _TikTokFeedScreenState extends State<TikTokFeedScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.black,
-      body: _buildBody(),
+      body: Stack(
+        children: [
+          _buildBody(),
+          // Barre de filtres par sport (overlay haut)
+          if (_sports.isNotEmpty)
+            Positioned(
+              top: 0, left: 0, right: 0,
+              child: SafeArea(
+                bottom: false,
+                child: SizedBox(
+                  height: 44,
+                  child: ListView(
+                    scrollDirection: Axis.horizontal,
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    children: [
+                      _sportChip('Tous', null),
+                      ..._sports.map((s) => _sportChip(
+                            s['name_fr'] as String? ?? '',
+                            s['id'] as int?,
+                          )),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _sportChip(String label, int? sportId) {
+    final selected = _sportFilter == sportId;
+    return Padding(
+      padding: const EdgeInsets.only(right: 8),
+      child: GestureDetector(
+        onTap: () => _selectSport(sportId),
+        child: Container(
+          alignment: Alignment.center,
+          padding: const EdgeInsets.symmetric(horizontal: 14),
+          decoration: BoxDecoration(
+            color: selected ? Colors.white : Colors.black.withValues(alpha: 0.35),
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: Colors.white.withValues(alpha: 0.5)),
+          ),
+          child: Text(
+            label,
+            style: TextStyle(
+              color: selected ? Colors.black : Colors.white,
+              fontSize: 13,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ),
+      ),
     );
   }
 
