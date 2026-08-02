@@ -28,43 +28,53 @@ class VideoPlayerWidget extends StatefulWidget {
 class _VideoPlayerWidgetState extends State<VideoPlayerWidget> {
   VideoPlayerController? _vpCtrl;
   ChewieController? _chewieCtrl;
-  bool _initialized = false;
+  bool _ready = false;   // contrôleur initialisé -> première frame dispo
+  bool _playing = false; // lecture lancée (Chewie actif)
   bool _error = false;
-  bool _started = false;
 
-  Future<void> _init() async {
-    if (_started) return;
-    setState(() => _started = true);
+  @override
+  void initState() {
+    super.initState();
+    _initController();
+  }
+
+  // Initialise le contrôleur pour afficher la PREMIÈRE IMAGE de la vidéo
+  // comme miniature/poster (sans package externe). La lecture démarre au tap.
+  Future<void> _initController() async {
     try {
       final vpc = VideoPlayerController.networkUrl(Uri.parse(widget.videoUrl));
       await vpc.initialize();
       if (!mounted) { vpc.dispose(); return; }
-
-      final cc = ChewieController(
-        videoPlayerController: vpc,
-        autoPlay: widget.autoPlay,
-        looping: false,
-        aspectRatio: widget.aspectRatio ?? vpc.value.aspectRatio,
-        placeholder: widget.thumbnailUrl != null
-            ? CachedNetworkImage(imageUrl: widget.thumbnailUrl!, fit: BoxFit.cover)
-            : null,
-        materialProgressColors: ChewieProgressColors(
-          playedColor: AppColors.accent,
-          handleColor: AppColors.accent,
-          bufferedColor: AppColors.grey400,
-          backgroundColor: AppColors.grey200,
-        ),
-        showControls: widget.showControls,
-      );
-
       setState(() {
         _vpCtrl = vpc;
-        _chewieCtrl = cc;
-        _initialized = true;
+        _ready = true;
       });
+      if (widget.autoPlay) _play();
     } catch (_) {
       if (mounted) setState(() => _error = true);
     }
+  }
+
+  void _play() {
+    final vpc = _vpCtrl;
+    if (vpc == null || _playing) return;
+    final cc = ChewieController(
+      videoPlayerController: vpc,
+      autoPlay: true,
+      looping: false,
+      aspectRatio: widget.aspectRatio ?? vpc.value.aspectRatio,
+      materialProgressColors: ChewieProgressColors(
+        playedColor: AppColors.accent,
+        handleColor: AppColors.accent,
+        bufferedColor: AppColors.grey400,
+        backgroundColor: AppColors.grey200,
+      ),
+      showControls: widget.showControls,
+    );
+    setState(() {
+      _chewieCtrl = cc;
+      _playing = true;
+    });
   }
 
   @override
@@ -78,17 +88,35 @@ class _VideoPlayerWidgetState extends State<VideoPlayerWidget> {
   Widget build(BuildContext context) {
     if (_error) return _ErrorView();
 
-    if (!_started) {
-      // Thumbnail avec bouton play
-      return GestureDetector(
-        onTap: _init,
-        child: Stack(
-          fit: StackFit.expand,
-          children: [
-            if (widget.thumbnailUrl != null)
-              CachedNetworkImage(imageUrl: widget.thumbnailUrl!, fit: BoxFit.cover)
-            else
-              Container(color: AppColors.primaryBg),
+    // Lecture en cours -> Chewie
+    if (_playing && _chewieCtrl != null) {
+      return Chewie(controller: _chewieCtrl!);
+    }
+
+    // Poster = première image de la vidéo (ou thumbnailUrl si fournie),
+    // avec un bouton play. Tap -> lecture.
+    return GestureDetector(
+      onTap: _ready ? _play : null,
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          if (_ready && _vpCtrl != null)
+            FittedBox(
+              fit: BoxFit.cover,
+              clipBehavior: Clip.hardEdge,
+              child: SizedBox(
+                width: _vpCtrl!.value.size.width,
+                height: _vpCtrl!.value.size.height,
+                child: VideoPlayer(_vpCtrl!),
+              ),
+            )
+          else if (widget.thumbnailUrl != null)
+            CachedNetworkImage(imageUrl: widget.thumbnailUrl!, fit: BoxFit.cover)
+          else
+            Container(color: AppColors.primaryBg),
+
+          // Voile léger + bouton play (masqué tant que non prêt : spinner)
+          if (_ready)
             Center(
               child: Container(
                 padding: const EdgeInsets.all(18),
@@ -98,24 +126,12 @@ class _VideoPlayerWidgetState extends State<VideoPlayerWidget> {
                 ),
                 child: const Icon(Icons.play_arrow, color: Colors.white, size: 40),
               ),
-            ),
-          ],
-        ),
-      );
-    }
-
-    if (!_initialized) {
-      return Stack(
-        fit: StackFit.expand,
-        children: [
-          if (widget.thumbnailUrl != null)
-            CachedNetworkImage(imageUrl: widget.thumbnailUrl!, fit: BoxFit.cover),
-          const Center(child: CircularProgressIndicator(color: AppColors.accent)),
+            )
+          else
+            const Center(child: CircularProgressIndicator(color: AppColors.accent)),
         ],
-      );
-    }
-
-    return Chewie(controller: _chewieCtrl!);
+      ),
+    );
   }
 }
 

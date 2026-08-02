@@ -9,8 +9,6 @@ import 'package:image_picker/image_picker.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:uuid/uuid.dart';
 import 'package:video_player/video_player.dart';
-import 'package:video_thumbnail/video_thumbnail.dart';
-import 'package:path_provider/path_provider.dart';
 
 /// Durée maximale autorisée pour une vidéo (1 min 30).
 const int kMaxVideoSeconds = 90;
@@ -123,25 +121,11 @@ class VideoService {
       await probe.dispose();
     }
 
-    // ── Miniature (non bloquante) ───────────────────────
-    // Génère un JPEG à partir de la vidéo. En cas d'échec, on continue
-    // sans miniature (thumbnail restera null).
+    // ── Miniature ───────────────────────────────────────
+    // Génération de miniature retirée (video_thumbnail incompatible CI :
+    // il dépend de jcenter, fermé). La miniature est désormais la première
+    // image de la vidéo, affichée directement par le lecteur (poster).
     File? thumb;
-    try {
-      final dir = await getTemporaryDirectory();
-      final path = await VideoThumbnail.thumbnailFile(
-        video: file.path,
-        thumbnailPath: dir.path,
-        imageFormat: ImageFormat.JPEG,
-        maxWidth: 720,
-        quality: 75,
-      );
-      if (path != null && await File(path).exists()) {
-        thumb = File(path);
-      }
-    } catch (_) {
-      thumb = null;
-    }
 
     return VideoPickResult(
       file: file,
