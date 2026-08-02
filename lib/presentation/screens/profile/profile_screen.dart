@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:timeago/timeago.dart' as timeago;
+import 'package:video_player/video_player.dart';
 import '../../../core/theme/app_colors.dart';
 import '../auth/login_screen.dart';
 import 'edit_profile_screen.dart';
@@ -9,6 +10,7 @@ import '../../../data/models/profile_model.dart';
 import '../../../data/repositories/profile_repository.dart';
 import '../../../main.dart';
 import '../../widgets/profile/talent_score_badge.dart';
+import '../../widgets/video/video_player_widget.dart';
 
 class ProfileScreen extends StatefulWidget {
   final String? userId;
@@ -684,24 +686,95 @@ class _PostsTab extends StatelessWidget {
   }
 }
 
-class _PostTile extends StatelessWidget {
+class _PostTile extends StatefulWidget {
   final PostModel post;
   const _PostTile({required this.post});
 
   @override
+  State<_PostTile> createState() => _PostTileState();
+}
+
+class _PostTileState extends State<_PostTile> {
+  VideoPlayerController? _poster;
+  bool _posterReady = false;
+
+  PostModel get post => widget.post;
+  String? get _mediaUrl => post.mediaUrls.isNotEmpty ? post.mediaUrls.first : null;
+
+  @override
+  void initState() {
+    super.initState();
+    // Miniature = première image de la vidéo (si pas de thumbnail enregistrée).
+    if (post.isVideo && post.thumbnailUrl == null && _mediaUrl != null) {
+      _initPoster();
+    }
+  }
+
+  Future<void> _initPoster() async {
+    try {
+      final c = VideoPlayerController.networkUrl(Uri.parse(_mediaUrl!));
+      await c.initialize();
+      if (!mounted) { c.dispose(); return; }
+      setState(() { _poster = c; _posterReady = true; });
+    } catch (_) {/* on garde le placeholder */}
+  }
+
+  @override
+  void dispose() {
+    _poster?.dispose();
+    super.dispose();
+  }
+
+  void _open() {
+    final url = _mediaUrl;
+    if (url == null) return;
+    Navigator.of(context).push(MaterialPageRoute(
+      builder: (_) => _FullScreenPost(post: post),
+    ));
+  }
+
+  Widget _thumb() {
+    // 1) thumbnail enregistrée
+    if (post.thumbnailUrl != null) {
+      return CachedNetworkImage(imageUrl: post.thumbnailUrl!, fit: BoxFit.cover);
+    }
+    // 2) image (post photo/status)
+    if (!post.isVideo && _mediaUrl != null) {
+      return CachedNetworkImage(imageUrl: _mediaUrl!, fit: BoxFit.cover);
+    }
+    // 3) vidéo : première frame comme poster
+    if (post.isVideo && _posterReady && _poster != null) {
+      return FittedBox(
+        fit: BoxFit.cover,
+        clipBehavior: Clip.hardEdge,
+        child: SizedBox(
+          width: _poster!.value.size.width,
+          height: _poster!.value.size.height,
+          child: VideoPlayer(_poster!),
+        ),
+      );
+    }
+    // 4) placeholder
+    return Container(color: AppColors.primaryBg,
+        child: const Center(child: Icon(Icons.play_circle_fill, color: AppColors.primary, size: 40)));
+  }
+
+  @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: () {},
+      onTap: _open,
       child: ClipRRect(
         borderRadius: BorderRadius.circular(12),
         child: Stack(
           fit: StackFit.expand,
           children: [
-            // Thumbnail
-            post.thumbnailUrl != null
-                ? CachedNetworkImage(imageUrl: post.thumbnailUrl!, fit: BoxFit.cover)
-                : Container(color: AppColors.primaryBg,
-                    child: const Center(child: Icon(Icons.play_circle_fill, color: AppColors.primary, size: 40))),
+            _thumb(),
+
+            // Icône play au centre pour les vidéos
+            if (post.isVideo)
+              const Center(
+                child: Icon(Icons.play_circle_fill, color: Colors.white70, size: 42),
+              ),
 
             // Overlay gradient
             const DecoratedBox(
@@ -786,6 +859,37 @@ class _PostTile extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+// ── Lecteur plein écran (vidéo / image) ───────────────────
+class _FullScreenPost extends StatelessWidget {
+  final PostModel post;
+  const _FullScreenPost({required this.post});
+
+  @override
+  Widget build(BuildContext context) {
+    final url = post.mediaUrls.isNotEmpty ? post.mediaUrls.first : null;
+    return Scaffold(
+      backgroundColor: AppColors.ink,
+      appBar: AppBar(
+        backgroundColor: AppColors.primary,
+        foregroundColor: Colors.white,
+        title: Text(post.title ?? (post.isVideo ? 'Vidéo' : 'Publication')),
+      ),
+      body: Center(
+        child: url == null
+            ? const Text('Média indisponible', style: TextStyle(color: Colors.white70))
+            : post.isVideo
+                ? AspectRatio(
+                    aspectRatio: 9 / 16,
+                    child: VideoPlayerWidget(videoUrl: url, autoPlay: true, showControls: true),
+                  )
+                : InteractiveViewer(
+                    child: CachedNetworkImage(imageUrl: url, fit: BoxFit.contain),
+                  ),
       ),
     );
   }

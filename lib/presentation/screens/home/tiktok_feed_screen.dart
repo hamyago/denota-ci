@@ -180,11 +180,16 @@ class _TikTokFeedScreenState extends State<TikTokFeedScreen> {
                   style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
             ),
             const Divider(height: 1),
-            ...reasons.map((r) => ListTile(
-                  leading: const Icon(Icons.flag_outlined, color: AppColors.error),
-                  title: Text(r),
-                  onTap: () => Navigator.pop(context, r),
-                )),
+            Flexible(
+              child: ListView(
+                shrinkWrap: true,
+                children: reasons.map((r) => ListTile(
+                      leading: const Icon(Icons.flag_outlined, color: AppColors.error),
+                      title: Text(r),
+                      onTap: () => Navigator.pop(context, r),
+                    )).toList(),
+              ),
+            ),
             const SizedBox(height: 8),
           ],
         ),
@@ -237,57 +242,119 @@ class _TikTokFeedScreenState extends State<TikTokFeedScreen> {
       body: Stack(
         children: [
           _buildBody(),
-          // Barre de filtres par sport (overlay haut)
-          if (_sports.isNotEmpty)
-            Positioned(
-              top: 0, left: 0, right: 0,
-              child: SafeArea(
-                bottom: false,
-                child: SizedBox(
-                  height: 44,
-                  child: ListView(
-                    scrollDirection: Axis.horizontal,
-                    padding: const EdgeInsets.symmetric(horizontal: 12),
-                    children: [
-                      _sportChip('Tous', null),
-                      ..._sports.map((s) => _sportChip(
-                            s['name_fr'] as String? ?? '',
-                            s['id'] as int?,
-                          )),
-                    ],
-                  ),
-                ),
+          // Menu déroulant compact de sport (overlay haut, couleurs DeNoTa)
+          Positioned(
+            top: 0, left: 0,
+            child: SafeArea(
+              bottom: false,
+              child: Padding(
+                padding: const EdgeInsets.only(left: 12, top: 6),
+                child: _sportDropdownButton(),
               ),
             ),
+          ),
         ],
       ),
     );
   }
 
-  Widget _sportChip(String label, int? sportId) {
-    final selected = _sportFilter == sportId;
-    return Padding(
-      padding: const EdgeInsets.only(right: 8),
-      child: GestureDetector(
-        onTap: () => _selectSport(sportId),
+  String get _currentSportLabel {
+    if (_sportFilter == null) return 'Tous les sports';
+    final s = _sports.firstWhere(
+      (e) => e['id'] == _sportFilter,
+      orElse: () => const {},
+    );
+    return (s['name_fr'] as String?) ?? 'Sport';
+  }
+
+  Widget _sportDropdownButton() {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(22),
+        onTap: _openSportSheet,
         child: Container(
-          alignment: Alignment.center,
-          padding: const EdgeInsets.symmetric(horizontal: 14),
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
           decoration: BoxDecoration(
-            color: selected ? Colors.white : Colors.black.withValues(alpha: 0.35),
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: Colors.white.withValues(alpha: 0.5)),
+            color: AppColors.primary,
+            borderRadius: BorderRadius.circular(22),
+            boxShadow: [
+              BoxShadow(color: Colors.black.withValues(alpha: 0.25), blurRadius: 8, offset: const Offset(0, 2)),
+            ],
           ),
-          child: Text(
-            label,
-            style: TextStyle(
-              color: selected ? Colors.black : Colors.white,
-              fontSize: 13,
-              fontWeight: FontWeight.w700,
-            ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.sports_martial_arts, color: Colors.white, size: 16),
+              const SizedBox(width: 6),
+              Text(
+                _currentSportLabel,
+                style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w700),
+              ),
+              const SizedBox(width: 4),
+              const Icon(Icons.keyboard_arrow_down, color: AppColors.accent, size: 20),
+            ],
           ),
         ),
       ),
+    );
+  }
+
+  void _openSportSheet() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: AppColors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (_) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const SizedBox(height: 10),
+            Container(width: 40, height: 4,
+              decoration: BoxDecoration(color: AppColors.grey300, borderRadius: BorderRadius.circular(2))),
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 14),
+              child: Text('Choisir un sport',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: AppColors.ink)),
+            ),
+            const Divider(height: 1),
+            Flexible(
+              child: ListView(
+                shrinkWrap: true,
+                children: [
+                  _sportSheetItem('Tous les sports', null),
+                  ..._sports.map((s) => _sportSheetItem(
+                        s['name_fr'] as String? ?? '',
+                        s['id'] as int?,
+                      )),
+                ],
+              ),
+            ),
+            const SizedBox(height: 8),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _sportSheetItem(String label, int? sportId) {
+    final selected = _sportFilter == sportId;
+    return ListTile(
+      leading: Icon(
+        selected ? Icons.radio_button_checked : Icons.radio_button_unchecked,
+        color: selected ? AppColors.primary : AppColors.grey400,
+      ),
+      title: Text(label,
+          style: TextStyle(
+            fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+            color: selected ? AppColors.primary : AppColors.ink,
+          )),
+      onTap: () {
+        Navigator.pop(context);
+        _selectSport(sportId);
+      },
     );
   }
 
