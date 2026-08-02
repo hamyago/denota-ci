@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../main.dart';
-import 'feed_screen.dart';
+import 'tiktok_feed_screen.dart';
 import '../search/discover_screen.dart';
 import '../messaging/conversations_screen.dart';
 import '../home/notifications_screen.dart';
@@ -72,7 +72,7 @@ class _HomeShellState extends State<HomeShell> {
         ];
       default: // athlete, institution, sponsor, expert
         return const [
-          FeedScreen(),
+          TikTokFeedScreen(),
           DiscoverScreen(),
           ConversationsScreen(),
           NotificationsScreen(),

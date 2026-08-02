@@ -42,11 +42,11 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
         'active': activeCount.count,
       };
 
-      // Posts en attente de modération
+      // Posts en attente de modération OU signalés
       final pending = await supabase
           .from('posts')
-          .select('id, title, content_type, status, created_at, author_id, media_urls, thumbnail_url')
-          .eq('status', 'pending_moderation')
+          .select('id, title, content_type, status, created_at, author_id, media_urls, thumbnail_url, is_flagged, flag_count')
+          .or('status.eq.pending_moderation,is_flagged.eq.true')
           .order('created_at', ascending: false)
           .limit(20);
       _pendingPosts = List<Map<String, dynamic>>.from(pending as List);
@@ -80,6 +80,38 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(newStatus == 'published' ? 'Post publié ✓' : 'Post rejeté')),
+      );
+      _loadAll();
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Erreur : $e'), backgroundColor: Colors.red),
+      );
+    }
+  }
+
+  Future<void> _deletePost(String postId) async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (c) => AlertDialog(
+        title: const Text('Supprimer cette publication ?'),
+        content: const Text('La publication et ses signalements seront définitivement supprimés. Cette action est irréversible.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.of(c).pop(false), child: const Text('Annuler')),
+          TextButton(
+            onPressed: () => Navigator.of(c).pop(true),
+            child: const Text('Supprimer', style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+    if (ok != true) return;
+    if (!mounted) return;
+    try {
+      await supabase.from('posts').delete().eq('id', postId);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Publication supprimée')),
       );
       _loadAll();
     } catch (e) {
@@ -202,7 +234,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                 : TabBarView(
                     children: [
                       _OverviewTab(stats: _stats),
-                      _ModerationTab(posts: _pendingPosts, onModerate: _moderatePost),
+                      _ModerationTab(posts: _pendingPosts, onModerate: _moderatePost, onDelete: _deletePost),
                       _UsersTab(
                         users: _recentUsers,
                         onToggleStatus: _toggleUserStatus,
@@ -313,7 +345,8 @@ class _StatItem {
 class _ModerationTab extends StatefulWidget {
   final List<Map<String, dynamic>> posts;
   final Future<void> Function(String postId, String newStatus) onModerate;
-  const _ModerationTab({required this.posts, required this.onModerate});
+  final Future<void> Function(String postId) onDelete;
+  const _ModerationTab({required this.posts, required this.onModerate, required this.onDelete});
 
   @override
   State<_ModerationTab> createState() => _ModerationTabState();
@@ -350,8 +383,8 @@ class _ModerationTabState extends State<_ModerationTab> {
       Future<List<dynamic>> fetch() async {
         final data = await supabase
             .from('posts')
-            .select('id, title, content_type, status, created_at, author_id, media_urls, thumbnail_url')
-            .eq('status', 'pending_moderation')
+            .select('id, title, content_type, status, created_at, author_id, media_urls, thumbnail_url, is_flagged, flag_count')
+            .or('status.eq.pending_moderation,is_flagged.eq.true')
             .order('created_at', ascending: false)
             .limit(50);
         return data as List;
@@ -376,6 +409,13 @@ class _ModerationTabState extends State<_ModerationTab> {
   Future<void> _moderate(String postId, String newStatus) async {
     await widget.onModerate(postId, newStatus);
     // Retire immédiatement le post traité de la liste locale.
+    if (mounted) {
+      setState(() => _posts.removeWhere((p) => p['id'] == postId));
+    }
+  }
+
+  Future<void> _delete(String postId) async {
+    await widget.onDelete(postId);
     if (mounted) {
       setState(() => _posts.removeWhere((p) => p['id'] == postId));
     }
@@ -525,12 +565,15 @@ class _ModerationTabState extends State<_ModerationTab> {
           final type = post['content_type'] as String? ?? 'video';
           final title = post['title'] as String? ?? 'Sans titre';
           final createdAt = post['created_at'] as String? ?? '';
+          final flagged = post['is_flagged'] == true;
+          final flagCount = post['flag_count'] as int? ?? 0;
 
           return Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
               color: AppColors.white,
               borderRadius: BorderRadius.circular(12),
+              border: flagged ? Border.all(color: Colors.red.shade200) : null,
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -545,8 +588,14 @@ class _ModerationTabState extends State<_ModerationTab> {
                     Expanded(child: Text(title, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14))),
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                      decoration: BoxDecoration(color: Colors.orange.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(6)),
-                      child: const Text('En attente', style: TextStyle(fontSize: 10, color: Colors.orange, fontWeight: FontWeight.w600)),
+                      decoration: BoxDecoration(
+                        color: (flagged ? Colors.red : Colors.orange).withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: Text(
+                        flagged ? 'Signalé ($flagCount)' : 'En attente',
+                        style: TextStyle(fontSize: 10, color: flagged ? Colors.red : Colors.orange, fontWeight: FontWeight.w700),
+                      ),
                     ),
                   ],
                 ),
@@ -560,6 +609,12 @@ class _ModerationTabState extends State<_ModerationTab> {
                   spacing: 8,
                   runSpacing: 8,
                   children: [
+                    TextButton.icon(
+                      onPressed: () => _delete((post['id'] ?? '').toString()),
+                      icon: const Icon(Icons.delete_outline, size: 16),
+                      label: const Text('Supprimer'),
+                      style: TextButton.styleFrom(foregroundColor: Colors.red),
+                    ),
                     OutlinedButton.icon(
                       onPressed: () => _moderate((post['id'] ?? '').toString(), 'rejected'),
                       icon: const Icon(Icons.close, size: 16),
