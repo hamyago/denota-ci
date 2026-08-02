@@ -145,6 +145,8 @@ class FeedVideoCard extends StatelessWidget {
   final String authorSport;
   final double talentScore;
   final String videoUrl;
+  final String? imageUrl;
+  final String contentType;
   final String? thumbnailUrl;
   final String? title;
   final String? body;
@@ -165,6 +167,8 @@ class FeedVideoCard extends StatelessWidget {
     required this.authorSport,
     required this.talentScore,
     required this.videoUrl,
+    this.imageUrl,
+    this.contentType = 'video',
     this.thumbnailUrl,
     this.title,
     this.body,
@@ -178,6 +182,51 @@ class FeedVideoCard extends StatelessWidget {
     this.onShare,
     this.isLiked = false,
   });
+
+  // Affiche le bon média selon le type de contenu :
+  // vidéo -> lecteur ; image/status -> image ; sinon -> rien.
+  Widget _buildMedia() {
+    final isVideo = contentType == 'video' && videoUrl.isNotEmpty;
+    if (isVideo) {
+      return ClipRRect(
+        borderRadius: BorderRadius.zero,
+        child: AspectRatio(
+          aspectRatio: 16 / 9,
+          child: VideoPlayerWidget(
+            videoUrl: videoUrl,
+            thumbnailUrl: thumbnailUrl,
+          ),
+        ),
+      );
+    }
+
+    final pic = (imageUrl != null && imageUrl!.isNotEmpty)
+        ? imageUrl!
+        : (videoUrl.isNotEmpty ? videoUrl : null);
+    if (pic != null) {
+      return ConstrainedBox(
+        constraints: const BoxConstraints(maxHeight: 420),
+        child: CachedNetworkImage(
+          imageUrl: pic,
+          width: double.infinity,
+          fit: BoxFit.cover,
+          placeholder: (_, __) => Container(
+            height: 220,
+            color: AppColors.grey200,
+            child: const Center(child: CircularProgressIndicator(strokeWidth: 2)),
+          ),
+          errorWidget: (_, __, ___) => Container(
+            height: 220,
+            color: AppColors.grey200,
+            child: const Center(child: Icon(Icons.broken_image, color: AppColors.grey400)),
+          ),
+        ),
+      );
+    }
+
+    // Pas de média (post texte pur) : on n'affiche rien.
+    return const SizedBox.shrink();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -248,17 +297,8 @@ class FeedVideoCard extends StatelessWidget {
             ),
           ),
 
-          // ── Vidéo ────────────────────────────────────
-          ClipRRect(
-            borderRadius: BorderRadius.zero,
-            child: AspectRatio(
-              aspectRatio: 16 / 9,
-              child: VideoPlayerWidget(
-                videoUrl: videoUrl,
-                thumbnailUrl: thumbnailUrl,
-              ),
-            ),
-          ),
+          // ── Média (vidéo / image / aucun) ─────────────
+          _buildMedia(),
 
           // ── Titre & description ───────────────────────
           if (title != null || body != null)

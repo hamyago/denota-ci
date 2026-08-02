@@ -177,7 +177,8 @@ class RecruiterRepository {
     return (data as List).map((e) {
       final j = Map<String, dynamic>.from(e as Map);
       final athlete = e['athlete'] as Map?;
-      final ap = (athlete?['athlete_profiles'] as List?)?.firstOrNull as Map?;
+      final apRaw = athlete?['athlete_profiles'];
+      final ap = apRaw is List ? apRaw.firstOrNull as Map? : apRaw as Map?;
       final sport = ap?['sports'] as Map?;
       final pos   = ap?['positions'] as Map?;
 

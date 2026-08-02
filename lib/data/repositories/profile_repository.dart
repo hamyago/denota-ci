@@ -72,7 +72,9 @@ class ProfileRepository {
     final user = _client.auth.currentUser;
     if (user == null) throw Exception('Non connecté');
     data['profile_id'] = user.id;
-    await _client.from('athlete_profiles').upsert(data);
+    // onConflict sur profile_id (contrainte unique) : met à jour la ligne
+    // existante au lieu de tenter un INSERT qui violerait l'unicité.
+    await _client.from('athlete_profiles').upsert(data, onConflict: 'profile_id');
   }
 
   // ── Avatar & Banner Upload ──────────────────────────────

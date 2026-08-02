@@ -116,7 +116,8 @@ class SearchRepository {
 
     return (data as List).map((e) {
       final m  = Map<String, dynamic>.from(e as Map);
-      final ap = (e['athlete_profiles'] as List?)?.firstOrNull as Map?;
+      final apRaw = e['athlete_profiles'];
+      final ap = apRaw is List ? apRaw.firstOrNull as Map? : apRaw as Map?;
       m['talent_score']  = ap?['talent_score'];
       m['level']         = ap?['level'];
       m['sport_name']    = ap?['sports']?['name_fr'];

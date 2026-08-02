@@ -210,11 +210,18 @@ class _FeedScreenState extends State<FeedScreen> {
           }
           final post = _posts[i];
           final profile = post['profiles'] as Map<String, dynamic>?;
-          // athlete_profiles est une relation → renvoyée sous forme de liste
-          final athleteList = profile?['athlete_profiles'] as List<dynamic>?;
-          final athlete = (athleteList != null && athleteList.isNotEmpty)
-              ? athleteList.first as Map<String, dynamic>?
-              : null;
+          // athlete_profiles : relation un-à-un (contrainte unique sur
+          // profile_id) → Supabase la renvoie en OBJET, mais selon la requête
+          // elle peut aussi arriver en LISTE. On gère les deux cas.
+          final rawAthlete = profile?['athlete_profiles'];
+          Map<String, dynamic>? athlete;
+          if (rawAthlete is List) {
+            athlete = rawAthlete.isNotEmpty
+                ? Map<String, dynamic>.from(rawAthlete.first as Map)
+                : null;
+          } else if (rawAthlete is Map) {
+            athlete = Map<String, dynamic>.from(rawAthlete);
+          }
           final sport =
               (athlete?['sports'] as Map<String, dynamic>?)?['name_fr']
                       as String? ??
@@ -232,7 +239,9 @@ class _FeedScreenState extends State<FeedScreen> {
             authorSport: sport,
             talentScore:
                 (athlete?['talent_score'] as num?)?.toDouble() ?? 0,
+            contentType: post['content_type'] as String? ?? 'video',
             videoUrl: mediaUrls.isNotEmpty ? mediaUrls.first : '',
+            imageUrl: mediaUrls.isNotEmpty ? mediaUrls.first : null,
             thumbnailUrl: post['thumbnail_url'] as String?,
             title: post['title'] as String?,
             body: post['body'] as String?,
