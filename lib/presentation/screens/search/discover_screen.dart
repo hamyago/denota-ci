@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../../../core/theme/app_colors.dart';
 import '../profile/profile_screen.dart';
+import 'talent_map_screen.dart';
 import '../../../data/repositories/search_repository.dart';
 import '../../../data/repositories/recruiter_repository.dart';
 import '../../widgets/search/filter_sheet.dart';
@@ -154,6 +155,15 @@ class _DiscoverScreenState extends State<DiscoverScreen>
       backgroundColor: AppColors.background,
       appBar: AppBar(
         title: const Text('Découvrir'),
+        actions: [
+          IconButton(
+            tooltip: 'Carte des talents',
+            icon: const Icon(Icons.map_outlined),
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => const TalentMapScreen()),
+            ),
+          ),
+        ],
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(56),
           child: TabBar(

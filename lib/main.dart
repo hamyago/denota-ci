@@ -47,6 +47,11 @@ void main() async {
 
 final supabase = Supabase.instance.client;
 
+/// Observe les changements de route pour, par ex., mettre en pause la vidéo
+/// du feed quand une page s'ouvre par-dessus.
+final RouteObserver<PageRoute<dynamic>> routeObserver =
+    RouteObserver<PageRoute<dynamic>>();
+
 class DeNotaApp extends StatelessWidget {
   const DeNotaApp({super.key});
 
@@ -57,6 +62,7 @@ class DeNotaApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light,
       navigatorKey: AppNavigator.navigatorKey,
+      navigatorObservers: [routeObserver],
       initialRoute: Routes.splash,
       onGenerateRoute: AppRouter.onGenerateRoute,
       builder: (context, child) {

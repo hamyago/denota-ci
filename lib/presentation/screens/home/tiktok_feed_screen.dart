@@ -21,8 +21,10 @@ class TikTokFeedScreen extends StatefulWidget {
   State<TikTokFeedScreen> createState() => _TikTokFeedScreenState();
 }
 
-class _TikTokFeedScreenState extends State<TikTokFeedScreen> with WidgetsBindingObserver {
+class _TikTokFeedScreenState extends State<TikTokFeedScreen>
+    with WidgetsBindingObserver, RouteAware {
   bool _appActive = true;
+  bool _routeOnTop = false; // une page est ouverte par-dessus le feed
   final PageController _pageCtrl = PageController();
   final List<Map<String, dynamic>> _posts = [];
   final List<Map<String, dynamic>> _sports = [];
@@ -46,6 +48,27 @@ class _TikTokFeedScreenState extends State<TikTokFeedScreen> with WidgetsBinding
     if (active != _appActive) {
       setState(() => _appActive = active);
     }
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final route = ModalRoute.of(context);
+    if (route is PageRoute) {
+      routeObserver.subscribe(this, route);
+    }
+  }
+
+  // Une page s'ouvre par-dessus le feed -> pause
+  @override
+  void didPushNext() {
+    if (!_routeOnTop) setState(() => _routeOnTop = true);
+  }
+
+  // La page au-dessus se ferme -> reprise
+  @override
+  void didPopNext() {
+    if (_routeOnTop) setState(() => _routeOnTop = false);
   }
 
   Future<void> _loadSports() async {
@@ -74,6 +97,7 @@ class _TikTokFeedScreenState extends State<TikTokFeedScreen> with WidgetsBinding
 
   @override
   void dispose() {
+    routeObserver.unsubscribe(this);
     WidgetsBinding.instance.removeObserver(this);
     _pageCtrl.dispose();
     super.dispose();
@@ -414,7 +438,7 @@ class _TikTokFeedScreenState extends State<TikTokFeedScreen> with WidgetsBinding
           key: ValueKey(post['id']),
           post: post,
           isActive: i == _current,
-          screenActive: widget.isActive && _appActive,
+          screenActive: widget.isActive && _appActive && !_routeOnTop,
           isLiked: _likedIds.contains(post['id'] as String),
           onLike: () => _toggleLike(post),
           onReport: () => _report(post),
