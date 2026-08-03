@@ -306,9 +306,7 @@ class _ProfileSliverAppBar extends StatelessWidget {
 
 // Partage d'un profil via la feuille native (WhatsApp, réseaux, etc.)
 Future<void> _shareProfile(ProfileModel p) async {
-  final sport = p.primarySportName;
   final msg = StringBuffer('Découvre le profil de ${p.fullName} (@${p.username}) sur DeNoTa 🏆');
-  if (sport != null && sport.isNotEmpty) msg.write('\nSport : $sport');
   msg.write('\n\nRejoins la communauté DeNoTa CI pour détecter et suivre les talents sportifs.');
   await SharePlus.instance.share(
     ShareParams(text: msg.toString(), subject: 'DeNoTa — ${p.fullName}'),
