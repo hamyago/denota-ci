@@ -57,36 +57,64 @@ class _ProfileScreenState extends State<ProfileScreen>
   }
 
   Future<void> _loadAll() async {
+    // 1) Le profil est CRITIQUE : on le charge seul, avec un timeout, et on
+    //    affiche l'écran dès qu'il est prêt (plus de spinner infini).
     try {
-      final results = await Future.wait([
-        _repo.getProfile(_userId),
-        _repo.getAthleteProfile(_userId),
-        _repo.getProfilePosts(_userId),
-        _repo.getAthleteStats(_userId),
-        _repo.getExpertRatings(_userId),
-        _repo.getAchievements(_userId),
-        _repo.getFollowersCount(_userId),
-        _repo.getFollowingCount(_userId),
-        if (!_isOwn) _repo.isFollowing(_userId),
-      ]);
-
+      final profile = await _repo
+          .getProfile(_userId)
+          .timeout(const Duration(seconds: 12));
       if (!mounted) return;
       setState(() {
-        _profile         = results[0] as ProfileModel?;
-        _athleteProfile  = results[1] as AthleteProfileModel?;
-        _posts           = results[2] as List<PostModel>;
-        _stats           = results[3] as List<AthleteStatsModel>;
-        _ratings         = results[4] as List<ExpertRatingModel>;
-        _achievements    = results[5] as List<AchievementModel>;
-        _followersCount  = results[6] as int;
-        _followingCount  = results[7] as int;
-        if (!_isOwn && results.length > 8) _isFollowing = results[8] as bool;
+        _profile = profile;
         _loading = false;
       });
-
-      if (!_isOwn) _repo.incrementProfileViews(_userId);
     } catch (e) {
       if (mounted) setState(() => _loading = false);
+      return;
+    }
+
+    if (_profile == null) return;
+
+    // 2) Données secondaires : chacune est chargée indépendamment et ne bloque
+    //    JAMAIS l'affichage. Une erreur/lenteur sur l'une n'affecte pas le reste.
+    Future<void> safe(Future<void> Function() task) async {
+      try { await task().timeout(const Duration(seconds: 12)); } catch (_) {}
+    }
+
+    safe(() async {
+      final r = await _repo.getAthleteProfile(_userId);
+      if (mounted) setState(() => _athleteProfile = r);
+    });
+    safe(() async {
+      final r = await _repo.getProfilePosts(_userId);
+      if (mounted) setState(() => _posts = r);
+    });
+    safe(() async {
+      final r = await _repo.getAthleteStats(_userId);
+      if (mounted) setState(() => _stats = r);
+    });
+    safe(() async {
+      final r = await _repo.getExpertRatings(_userId);
+      if (mounted) setState(() => _ratings = r);
+    });
+    safe(() async {
+      final r = await _repo.getAchievements(_userId);
+      if (mounted) setState(() => _achievements = r);
+    });
+    safe(() async {
+      final r = await _repo.getFollowersCount(_userId);
+      if (mounted) setState(() => _followersCount = r);
+    });
+    safe(() async {
+      final r = await _repo.getFollowingCount(_userId);
+      if (mounted) setState(() => _followingCount = r);
+    });
+    if (!_isOwn) {
+      safe(() async {
+        final r = await _repo.isFollowing(_userId);
+        if (mounted) setState(() => _isFollowing = r);
+      });
+      _repo.incrementProfileViews(_userId);
     }
   }
 
