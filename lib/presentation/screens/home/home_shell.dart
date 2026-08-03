@@ -71,12 +71,12 @@ class _HomeShellState extends State<HomeShell> {
           ProfileScreen(),
         ];
       default: // athlete, institution, sponsor, expert
-        return const [
-          TikTokFeedScreen(),
-          DiscoverScreen(),
-          ConversationsScreen(),
-          NotificationsScreen(),
-          ProfileScreen(),
+        return [
+          TikTokFeedScreen(isActive: _currentIndex == 0),
+          const DiscoverScreen(),
+          const ConversationsScreen(),
+          const NotificationsScreen(),
+          const ProfileScreen(),
         ];
     }
   }

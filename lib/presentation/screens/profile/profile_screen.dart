@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:timeago/timeago.dart' as timeago;
 import 'package:video_player/video_player.dart';
+import 'package:share_plus/share_plus.dart';
 import '../../../core/theme/app_colors.dart';
 import '../auth/login_screen.dart';
 import 'edit_profile_screen.dart';
@@ -303,6 +304,17 @@ class _ProfileSliverAppBar extends StatelessWidget {
   }
 }
 
+// Partage d'un profil via la feuille native (WhatsApp, réseaux, etc.)
+Future<void> _shareProfile(ProfileModel p) async {
+  final sport = p.primarySportName;
+  final msg = StringBuffer('Découvre le profil de ${p.fullName} (@${p.username}) sur DeNoTa 🏆');
+  if (sport != null && sport.isNotEmpty) msg.write('\nSport : $sport');
+  msg.write('\n\nRejoins la communauté DeNoTa CI pour détecter et suivre les talents sportifs.');
+  await SharePlus.instance.share(
+    ShareParams(text: msg.toString(), subject: 'DeNoTa — ${p.fullName}'),
+  );
+}
+
 class _ProfileHeader extends StatelessWidget {
   final ProfileModel profile;
   final AthleteProfileModel? athleteProfile;
@@ -582,7 +594,7 @@ class _ProfileHeader extends StatelessWidget {
                     ),
                     const SizedBox(width: 10),
                     OutlinedButton(
-                      onPressed: () {},
+                      onPressed: () => _shareProfile(profile),
                       style: OutlinedButton.styleFrom(
                         minimumSize: const Size(40, 40),
                         padding: const EdgeInsets.symmetric(horizontal: 12),
@@ -614,12 +626,12 @@ class _ProfileHeader extends StatelessWidget {
                     ),
                     const SizedBox(width: 8),
                     OutlinedButton(
-                      onPressed: () {},
+                      onPressed: () => _shareProfile(profile),
                       style: OutlinedButton.styleFrom(
                         minimumSize: const Size(40, 40),
                         padding: const EdgeInsets.symmetric(horizontal: 12),
                       ),
-                      child: const Icon(Icons.more_horiz, size: 18),
+                      child: const Icon(Icons.share_outlined, size: 18),
                     ),
                   ]),
 

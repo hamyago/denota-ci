@@ -6,21 +6,23 @@
 // - overlay : auteur + légende en bas, actions à droite
 //   (like, commentaires, partage, SIGNALER)
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:video_player/video_player.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:share_plus/share_plus.dart';
 import '../../../main.dart';
 import '../../../core/theme/app_colors.dart';
 
 class TikTokFeedScreen extends StatefulWidget {
-  const TikTokFeedScreen({super.key});
+  final bool isActive;
+  const TikTokFeedScreen({super.key, this.isActive = true});
 
   @override
   State<TikTokFeedScreen> createState() => _TikTokFeedScreenState();
 }
 
-class _TikTokFeedScreenState extends State<TikTokFeedScreen> {
+class _TikTokFeedScreenState extends State<TikTokFeedScreen> with WidgetsBindingObserver {
+  bool _appActive = true;
   final PageController _pageCtrl = PageController();
   final List<Map<String, dynamic>> _posts = [];
   final List<Map<String, dynamic>> _sports = [];
@@ -33,8 +35,17 @@ class _TikTokFeedScreenState extends State<TikTokFeedScreen> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _loadSports();
     _load();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    final active = state == AppLifecycleState.resumed;
+    if (active != _appActive) {
+      setState(() => _appActive = active);
+    }
   }
 
   Future<void> _loadSports() async {
@@ -63,6 +74,7 @@ class _TikTokFeedScreenState extends State<TikTokFeedScreen> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _pageCtrl.dispose();
     super.dispose();
   }
@@ -402,6 +414,7 @@ class _TikTokFeedScreenState extends State<TikTokFeedScreen> {
           key: ValueKey(post['id']),
           post: post,
           isActive: i == _current,
+          screenActive: widget.isActive && _appActive,
           isLiked: _likedIds.contains(post['id'] as String),
           onLike: () => _toggleLike(post),
           onReport: () => _report(post),
@@ -417,6 +430,7 @@ class _TikTokFeedScreenState extends State<TikTokFeedScreen> {
 class _TikTokItem extends StatefulWidget {
   final Map<String, dynamic> post;
   final bool isActive;
+  final bool screenActive;
   final bool isLiked;
   final VoidCallback onLike;
   final VoidCallback onReport;
@@ -425,6 +439,7 @@ class _TikTokItem extends StatefulWidget {
     super.key,
     required this.post,
     required this.isActive,
+    required this.screenActive,
     required this.isLiked,
     required this.onLike,
     required this.onReport,
@@ -453,6 +468,8 @@ class _TikTokItemState extends State<_TikTokItem> {
     if (_isVideo && _mediaUrl != null) _initVideo();
   }
 
+  bool get _shouldPlay => widget.isActive && widget.screenActive && !_paused;
+
   Future<void> _initVideo() async {
     try {
       final c = VideoPlayerController.networkUrl(Uri.parse(_mediaUrl!));
@@ -460,7 +477,7 @@ class _TikTokItemState extends State<_TikTokItem> {
       if (!mounted) { c.dispose(); return; }
       c.setLooping(true);
       setState(() { _ctrl = c; _ready = true; });
-      if (widget.isActive) c.play();
+      if (_shouldPlay) c.play();
     } catch (_) {
       // vidéo illisible : on laisse l'affichage image/placeholder
     }
@@ -470,7 +487,7 @@ class _TikTokItemState extends State<_TikTokItem> {
   void didUpdateWidget(covariant _TikTokItem old) {
     super.didUpdateWidget(old);
     if (_ctrl != null && _ready) {
-      if (widget.isActive && !_paused) {
+      if (_shouldPlay) {
         _ctrl!.play();
       } else {
         _ctrl!.pause();
@@ -579,12 +596,19 @@ class _TikTokItemState extends State<_TikTokItem> {
     );
   }
 
-  void _share() {
+  Future<void> _share() async {
     final url = _mediaUrl;
-    if (url == null) return;
-    Clipboard.setData(ClipboardData(text: url));
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Lien copié dans le presse-papiers')),
+    final profile = widget.post['profiles'] as Map<String, dynamic>?;
+    final author = profile?['full_name'] as String? ?? 'un athlète';
+    final title = widget.post['title'] as String?;
+
+    final msg = StringBuffer('Regarde cette publication de $author sur DeNoTa 🏆');
+    if (title != null && title.isNotEmpty) msg.write('\n« $title »');
+    if (url != null) msg.write('\n$url');
+    msg.write('\n\nDécouvre les talents sportifs sur DeNoTa CI.');
+
+    await SharePlus.instance.share(
+      ShareParams(text: msg.toString(), subject: 'DeNoTa — $author'),
     );
   }
 
